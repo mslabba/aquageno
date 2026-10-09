@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: aquageno
+      POSTGRES_PASSWORD: aquageno
+      POSTGRES_DB: aquageno
+    ports:
+      - "5433:5432"
+    volumes:
+      - aquageno_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aquageno -d aquageno"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    environment:
+      DATABASE_URL: postgresql://aquageno:aquageno@postgres:5432/aquageno
+      JWT_ACCESS_SECRET: dev-access-secret-change-me-please
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-me-please
+      ACCESS_TTL: 15m
+      REFRESH_TTL_DAYS: 7
+      BCRYPT_ROUNDS: 12
+      PORT: 4000
+      CORS_ORIGIN: http://localhost:5173,http://localhost:8090
+      COOKIE_SECURE: "false"
+      APP_URL: http://localhost:8090
+      BUSINESS_TZ: Asia/Kolkata
+      LOG_LEVEL: info
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    ports:
+      - "8090:80"
+    depends_on:
+      - api
+
+volumes:
+  aquageno_pg:

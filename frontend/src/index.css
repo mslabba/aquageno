@@ -1,0 +1,70 @@
+@import "tailwindcss";
+@import "@fontsource/dm-sans/400.css";
+@import "@fontsource/dm-sans/500.css";
+@import "@fontsource/dm-sans/600.css";
+@import "@fontsource/dm-sans/700.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@theme {
+  --font-sans: "DM Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --color-ink: #10272a;
+  --color-muted: #607477;
+  --color-line: #dce5e5;
+  --color-paper: #f3f6f6;
+  --color-nav: #0a2f33;
+  --color-nav2: #12444a;
+  --color-sea: #0d8b82;
+  --color-sea-ink: #075d58;
+  --color-sea-soft: #d9f1ed;
+  --color-warn: #b86d12;
+  --color-warn-soft: #fff0d7;
+  --color-danger: #b64343;
+  --color-danger-soft: #fde7e5;
+  --color-ok: #17805f;
+  --color-ok-soft: #ddf2e8;
+  --color-info: #266d91;
+  --color-info-soft: #e1eff6;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid #0d8b82;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,639 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ItemType {
+  RAW_MATERIAL
+  PACKING_MATERIAL
+  FINISHED_GOOD
+}
+
+enum DocStatus {
+  DRAFT
+  PENDING_APPROVAL
+  REJECTED
+  POSTED
+  REVERSED
+}
+
+enum DocType {
+  PURCHASE
+  PRODUCTION
+  TRANSFER
+  SHIPMENT
+  ADJUSTMENT
+}
+
+enum MovementType {
+  PURCHASE_IN
+  PURCHASE_REVERSAL_OUT
+  PRODUCTION_IN
+  PRODUCTION_OUT
+  PRODUCTION_REVERSAL_IN
+  PRODUCTION_REVERSAL_OUT
+  TRANSFER_IN
+  TRANSFER_OUT
+  TRANSFER_REVERSAL_IN
+  TRANSFER_REVERSAL_OUT
+  SHIPMENT_OUT
+  SHIPMENT_REVERSAL_IN
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  ADJUSTMENT_REVERSAL_IN
+  ADJUSTMENT_REVERSAL_OUT
+}
+
+enum AdjustmentReason {
+  DAMAGE
+  COUNT_CORRECTION
+  EXPIRY
+  OTHER
+}
+
+enum StockDirection {
+  IN
+  OUT
+}
+
+enum PermissionModule {
+  DASHBOARD
+  PURCHASES
+  PRODUCTION
+  STOCK
+  TRANSFERS
+  SHIPMENTS
+  REPORTS
+  MASTER_DATA
+  USERS
+  ROLES
+  APPROVALS
+}
+
+enum PermissionAction {
+  VIEW
+  CREATE
+  EDIT
+  DELETE
+  APPROVE
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  SUBMIT
+  APPROVE
+  REJECT
+  POST
+  REVERSE
+  LOGIN
+  LOGOUT
+  PASSWORD_CHANGE
+}
+
+enum NotificationType {
+  APPROVAL_REQUESTED
+  APPROVAL_COMPLETED
+  APPROVAL_REJECTED
+  LOW_STOCK
+}
+
+enum TaskStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String
+  passwordHash       String
+  roleId             String
+  role               Role      @relation(fields: [roleId], references: [id])
+  tokenVersion       Int       @default(0)
+  mustChangePassword Boolean   @default(false)
+  isActive           Boolean   @default(true)
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  refreshTokens RefreshToken[]
+  resetTokens   PasswordResetToken[]
+  notifications Notification[]
+  tasksSubmitted ApprovalTask[] @relation("TaskSubmitter")
+  tasksDecided   ApprovalTask[] @relation("TaskDecider")
+
+  @@index([roleId])
+}
+
+model Role {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String    @default("")
+  isSystem    Boolean   @default(false)
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  users       User[]
+  permissions Permission[]
+}
+
+model Permission {
+  id     String            @id @default(cuid())
+  roleId String
+  module PermissionModule
+  action PermissionAction
+  role   Role              @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, module, action])
+  @@index([roleId])
+}
+
+model RefreshToken {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  replacedById String?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model UnitOfMeasure {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  name      String
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  items     Item[]
+}
+
+model ItemCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  items     Item[]
+}
+
+model Item {
+  id           String         @id @default(cuid())
+  sku          String         @unique
+  name         String
+  itemType     ItemType
+  categoryId   String
+  category     ItemCategory   @relation(fields: [categoryId], references: [id])
+  unitId       String
+  unit         UnitOfMeasure  @relation(fields: [unitId], references: [id])
+  reorderLevel Decimal        @default(0) @db.Decimal(18, 3)
+  standardCost Decimal        @default(0) @db.Decimal(18, 2)
+  isActive     Boolean        @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  balances          StockBalance[]
+  purchaseLines     PurchaseLine[]
+  productionOutputs Production[]   @relation("ProductionOutput")
+  productionLines   ProductionLine[]
+  transferLines     TransferLine[]
+  shipmentLines     ShipmentLine[]
+  adjustmentLines   AdjustmentLine[]
+  boms              Bom[]
+  bomLines          BomLine[]
+
+  @@index([itemType])
+  @@index([categoryId])
+}
+
+model Warehouse {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  name      String
+  address   String    @default("")
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  balances            StockBalance[]
+  purchases           Purchase[]
+  productions         Production[]
+  transfersFrom       Transfer[]       @relation("TransferSource")
+  transfersTo         Transfer[]       @relation("TransferDestination")
+  shipments           Shipment[]
+  adjustments         StockAdjustment[]
+}
+
+model Supplier {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  name        String
+  contactName String    @default("")
+  phone       String    @default("")
+  email       String    @default("")
+  address     String    @default("")
+  gstin       String    @default("")
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  purchases   Purchase[]
+}
+
+model Customer {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  name        String
+  contactName String    @default("")
+  phone       String    @default("")
+  email       String    @default("")
+  address     String    @default("")
+  gstin       String    @default("")
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  shipments   Shipment[]
+}
+
+model Bom {
+  id             String    @id @default(cuid())
+  finishedItemId String
+  finishedItem   Item      @relation(fields: [finishedItemId], references: [id])
+  name           String
+  isActive       Boolean   @default(true)
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lines          BomLine[]
+
+  @@index([finishedItemId])
+}
+
+model BomLine {
+  id         String  @id @default(cuid())
+  bomId      String
+  bom        Bom     @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  itemId     String
+  item       Item    @relation(fields: [itemId], references: [id])
+  qtyPerUnit Decimal @db.Decimal(18, 3)
+  sortOrder  Int     @default(0)
+
+  @@index([bomId])
+}
+
+model DocumentSequence {
+  prefix String @id
+  next   Int
+  @@map("document_sequences")
+}
+
+model Purchase {
+  id               String    @id @default(cuid())
+  docNo            String    @unique
+  seedKey          String?   @unique
+  supplierId       String
+  supplier         Supplier  @relation(fields: [supplierId], references: [id])
+  invoiceNo        String
+  invoiceDate      DateTime  @db.Date
+  warehouseId      String
+  warehouse        Warehouse @relation(fields: [warehouseId], references: [id])
+  notes            String    @default("")
+  status           DocStatus @default(DRAFT)
+  totalAmount      Decimal   @default(0) @db.Decimal(18, 2)
+  isReversal       Boolean   @default(false)
+  reversalOfId     String?
+  createdById      String
+  submittedById    String?
+  submittedAt      DateTime?
+  approvedById     String?
+  approvedAt       DateTime?
+  rejectedById     String?
+  rejectedAt       DateTime?
+  rejectionRemarks String?
+  postedAt         DateTime?
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lines            PurchaseLine[]
+
+  @@index([status])
+  @@index([supplierId])
+  @@index([warehouseId])
+  @@index([invoiceDate])
+}
+
+model PurchaseLine {
+  id         String   @id @default(cuid())
+  purchaseId String
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  itemId     String
+  item       Item     @relation(fields: [itemId], references: [id])
+  quantity   Decimal  @db.Decimal(18, 3)
+  unitPrice  Decimal  @db.Decimal(18, 2)
+  lineTotal  Decimal  @db.Decimal(18, 2)
+  sortOrder  Int      @default(0)
+
+  @@index([purchaseId])
+  @@index([itemId])
+}
+
+model Production {
+  id               String    @id @default(cuid())
+  docNo            String    @unique
+  seedKey          String?   @unique
+  finishedItemId   String
+  finishedItem     Item      @relation("ProductionOutput", fields: [finishedItemId], references: [id])
+  quantity         Decimal   @db.Decimal(18, 3)
+  batchNo          String
+  producedOn       DateTime  @db.Date
+  warehouseId      String
+  warehouse        Warehouse @relation(fields: [warehouseId], references: [id])
+  notes            String    @default("")
+  status           DocStatus @default(DRAFT)
+  totalAmount      Decimal   @default(0) @db.Decimal(18, 2)
+  isReversal       Boolean   @default(false)
+  reversalOfId     String?
+  createdById      String
+  submittedById    String?
+  submittedAt      DateTime?
+  approvedById     String?
+  approvedAt       DateTime?
+  rejectedById     String?
+  rejectedAt       DateTime?
+  rejectionRemarks String?
+  postedAt         DateTime?
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lines            ProductionLine[]
+
+  @@index([status])
+  @@index([warehouseId])
+  @@index([producedOn])
+  @@index([finishedItemId])
+}
+
+model ProductionLine {
+  id           String     @id @default(cuid())
+  productionId String
+  production   Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  itemId       String
+  item         Item       @relation(fields: [itemId], references: [id])
+  quantity     Decimal    @db.Decimal(18, 3)
+  unitCost     Decimal    @default(0) @db.Decimal(18, 2)
+  sortOrder    Int        @default(0)
+
+  @@index([productionId])
+  @@index([itemId])
+}
+
+model Transfer {
+  id                     String    @id @default(cuid())
+  docNo                  String    @unique
+  seedKey                String?   @unique
+  sourceWarehouseId      String
+  sourceWarehouse        Warehouse @relation("TransferSource", fields: [sourceWarehouseId], references: [id])
+  destinationWarehouseId String
+  destinationWarehouse   Warehouse @relation("TransferDestination", fields: [destinationWarehouseId], references: [id])
+  transferDate           DateTime  @db.Date
+  notes                  String    @default("")
+  status                 DocStatus @default(DRAFT)
+  isReversal             Boolean   @default(false)
+  reversalOfId           String?
+  createdById            String
+  submittedById          String?
+  submittedAt            DateTime?
+  approvedById           String?
+  approvedAt             DateTime?
+  rejectedById           String?
+  rejectedAt             DateTime?
+  rejectionRemarks       String?
+  postedAt               DateTime?
+  deletedAt              DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  lines                  TransferLine[]
+
+  @@index([status])
+  @@index([transferDate])
+}
+
+model TransferLine {
+  id         String   @id @default(cuid())
+  transferId String
+  transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  itemId     String
+  item       Item     @relation(fields: [itemId], references: [id])
+  quantity   Decimal  @db.Decimal(18, 3)
+  sortOrder  Int      @default(0)
+
+  @@index([transferId])
+  @@index([itemId])
+}
+
+model Shipment {
+  id               String    @id @default(cuid())
+  docNo            String    @unique
+  seedKey          String?   @unique
+  customerId       String
+  customer         Customer  @relation(fields: [customerId], references: [id])
+  shipmentDate     DateTime  @db.Date
+  warehouseId      String
+  warehouse        Warehouse @relation(fields: [warehouseId], references: [id])
+  vehicleNo        String    @default("")
+  notes            String    @default("")
+  status           DocStatus @default(DRAFT)
+  totalAmount      Decimal   @default(0) @db.Decimal(18, 2)
+  isReversal       Boolean   @default(false)
+  reversalOfId     String?
+  createdById      String
+  submittedById    String?
+  submittedAt      DateTime?
+  approvedById     String?
+  approvedAt       DateTime?
+  rejectedById     String?
+  rejectedAt       DateTime?
+  rejectionRemarks String?
+  postedAt         DateTime?
+  deletedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lines            ShipmentLine[]
+
+  @@index([status])
+  @@index([shipmentDate])
+  @@index([customerId])
+}
+
+model ShipmentLine {
+  id         String   @id @default(cuid())
+  shipmentId String
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  itemId     String
+  item       Item     @relation(fields: [itemId], references: [id])
+  quantity   Decimal  @db.Decimal(18, 3)
+  unitPrice  Decimal  @db.Decimal(18, 2)
+  lineTotal  Decimal  @db.Decimal(18, 2)
+  sortOrder  Int      @default(0)
+
+  @@index([shipmentId])
+  @@index([itemId])
+}
+
+model StockAdjustment {
+  id               String           @id @default(cuid())
+  docNo            String           @unique
+  seedKey          String?          @unique
+  warehouseId      String
+  warehouse        Warehouse        @relation(fields: [warehouseId], references: [id])
+  adjustmentDate   DateTime         @db.Date
+  reason           AdjustmentReason
+  notes            String           @default("")
+  status           DocStatus        @default(DRAFT)
+  isReversal       Boolean          @default(false)
+  reversalOfId     String?
+  createdById      String
+  submittedById    String?
+  submittedAt      DateTime?
+  approvedById     String?
+  approvedAt       DateTime?
+  rejectedById     String?
+  rejectedAt       DateTime?
+  rejectionRemarks String?
+  postedAt         DateTime?
+  deletedAt        DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  lines            AdjustmentLine[]
+
+  @@index([status])
+  @@index([adjustmentDate])
+}
+
+model AdjustmentLine {
+  id           String          @id @default(cuid())
+  adjustmentId String
+  adjustment   StockAdjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+  itemId       String
+  item         Item            @relation(fields: [itemId], references: [id])
+  quantity     Decimal         @db.Decimal(18, 3)
+  direction    StockDirection
+  sortOrder    Int             @default(0)
+
+  @@index([adjustmentId])
+  @@index([itemId])
+}
+
+model StockBalance {
+  itemId      String    @map("item_id")
+  warehouseId String    @map("warehouse_id")
+  quantity    Decimal   @db.Decimal(18, 3)
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  item        Item      @relation(fields: [itemId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@id([itemId, warehouseId])
+  @@map("stock_balances")
+}
+
+model StockLedger {
+  id            String       @id @default(cuid())
+  itemId        String       @map("item_id")
+  warehouseId   String       @map("warehouse_id")
+  movementDate  DateTime     @map("movement_date") @db.Date
+  movementType  MovementType @map("movement_type")
+  referenceType DocType      @map("reference_type")
+  referenceId   String       @map("reference_id")
+  referenceNo   String       @map("reference_no")
+  qtyIn         Decimal      @map("qty_in") @db.Decimal(18, 3)
+  qtyOut        Decimal      @map("qty_out") @db.Decimal(18, 3)
+  balanceAfter  Decimal      @map("balance_after") @db.Decimal(18, 3)
+  createdById   String       @map("created_by_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  @@index([itemId, warehouseId, movementDate])
+  @@index([referenceType, referenceId])
+  @@map("stock_ledgers")
+}
+
+model ApprovalTask {
+  id            String     @id @default(cuid())
+  docType       DocType
+  docId         String
+  docNo         String
+  summary       String
+  amount        Decimal    @default(0) @db.Decimal(18, 2)
+  module        PermissionModule
+  submittedById String
+  submittedBy   User       @relation("TaskSubmitter", fields: [submittedById], references: [id])
+  submittedAt   DateTime   @default(now())
+  status        TaskStatus @default(PENDING)
+  decidedById   String?
+  decidedBy     User?      @relation("TaskDecider", fields: [decidedById], references: [id])
+  decidedAt     DateTime?
+  remarks       String?
+
+  @@index([status, submittedAt])
+  @@index([docType, docId])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  action     AuditAction
+  entityType String
+  entityId   String
+  summary    String
+  before     Json?
+  after      Json?
+  createdAt  DateTime    @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       NotificationType
+  title      String
+  body       String
+  entityType String?
+  entityId   String?
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+}

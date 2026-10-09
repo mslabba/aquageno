@@ -1,0 +1,2879 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:," />
+  <title>Aquageno Production & Stock Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+    rel="stylesheet">
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f3f6f6;
+      --surface: #ffffff;
+      --surface-2: #f8fafa;
+      --ink: #10272a;
+      --muted: #607477;
+      --line: #dce5e5;
+      --line-strong: #c9d7d7;
+      --nav: #0a2f33;
+      --nav-2: #12444a;
+      --accent: #0d8b82;
+      --accent-2: #d9f1ed;
+      --accent-ink: #075d58;
+      --warning: #b86d12;
+      --warning-bg: #fff0d7;
+      --danger: #b64343;
+      --danger-bg: #fde7e5;
+      --success: #17805f;
+      --success-bg: #ddf2e8;
+      --blue: #266d91;
+      --blue-bg: #e1eff6;
+      --shadow: 0 12px 36px rgba(22, 58, 61, .08);
+      --r-sm: 8px;
+      --r-md: 13px;
+      --r-lg: 20px;
+    }
+
+    @media(prefers-color-scheme:dark) {
+      :root {
+        --bg: #0d1718;
+        --surface: #132123;
+        --surface-2: #18292b;
+        --ink: #edf6f5;
+        --muted: #a1b5b5;
+        --line: #294043;
+        --line-strong: #365256;
+        --nav: #071d20;
+        --nav-2: #103b40;
+        --accent: #3fc2b5;
+        --accent-2: #163c3a;
+        --accent-ink: #9ee3da;
+        --warning: #f1b969;
+        --warning-bg: #3d2c14;
+        --danger: #f08c87;
+        --danger-bg: #412321;
+        --success: #6ed0aa;
+        --success-bg: #16392d;
+        --blue: #79b9dc;
+        --blue-bg: #193442;
+        --shadow: 0 18px 42px rgba(0, 0, 0, .28)
+      }
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "DM Sans", sans-serif;
+      background: var(--bg);
+      color: var(--ink)
+    }
+
+    button,
+    input,
+    select {
+      font: inherit
+    }
+
+    button {
+      cursor: pointer
+    }
+
+    a {
+      color: inherit
+    }
+
+    .mono {
+      font-family: "IBM Plex Mono", monospace
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr)
+    }
+
+    .sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      width: 240px;
+      background: var(--nav);
+      color: #e5f5f3;
+      padding: 28px 16px 22px;
+      display: flex;
+      flex-direction: column;
+      z-index: 30
+    }
+
+    .context {
+      padding: 0 12px 22px;
+      border-bottom: 1px solid rgba(255, 255, 255, .12)
+    }
+
+    .context b {
+      font-size: 15px;
+      display: block
+    }
+
+    .context small {
+      display: block;
+      color: #9bc0be;
+      margin-top: 5px;
+      font-size: 12px
+    }
+
+    .nav {
+      display: grid;
+      gap: 4px;
+      margin-top: 18px
+    }
+
+    .nav button {
+      border: 0;
+      background: transparent;
+      color: #b9d1cf;
+      padding: 11px 12px;
+      border-radius: 9px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      font-size: 14px
+    }
+
+    .nav button:hover {
+      background: rgba(255, 255, 255, .06);
+      color: #fff
+    }
+
+    .nav button.active {
+      background: #e4f5f2;
+      color: #083a3b
+    }
+
+    .nav button:disabled {
+      opacity: .42;
+      cursor: not-allowed
+    }
+
+    .nav button:disabled:hover {
+      background: transparent;
+      color: #b9d1cf
+    }
+
+    .nav svg {
+      width: 18px;
+      height: 18px
+    }
+
+    .side-foot {
+      margin-top: auto;
+      padding: 16px 12px 0;
+      border-top: 1px solid rgba(255, 255, 255, .12);
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: #2a686d;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 700
+    }
+
+    .side-foot b {
+      font-size: 13px
+    }
+
+    .side-foot small {
+      display: block;
+      color: #9bc0be;
+      font-size: 11px;
+      margin-top: 2px
+    }
+
+    .main {
+      grid-column: 2;
+      min-width: 0
+    }
+
+    .topbar {
+      height: 74px;
+      padding: 0 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(12px)
+    }
+
+    .breadcrumbs {
+      font-size: 13px;
+      color: var(--muted)
+    }
+
+    .breadcrumbs strong {
+      color: var(--ink)
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .plant-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 8px 11px;
+      font-size: 13px;
+      font-weight: 600
+    }
+
+    .dot-live {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #25b889;
+      box-shadow: 0 0 0 4px color-mix(in srgb, #25b889 16%, transparent)
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface);
+      color: var(--ink);
+      display: grid;
+      place-items: center
+    }
+
+    .icon-btn svg {
+      width: 18px
+    }
+
+    .menu-btn {
+      display: none
+    }
+
+    .page {
+      padding: 30px 34px 60px;
+      max-width: 1500px;
+      margin: 0 auto
+    }
+
+    .view {
+      display: none
+    }
+
+    .view.active {
+      display: block
+    }
+
+    .page-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 18px;
+      margin-bottom: 24px
+    }
+
+    .page-head h1 {
+      font-size: 30px;
+      letter-spacing: -.8px;
+      margin: 0 0 7px
+    }
+
+    .page-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px
+    }
+
+    .head-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 14px;
+      font-weight: 700;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 40px
+    }
+
+    .btn svg {
+      width: 17px
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      color: white
+    }
+
+    .btn.primary:hover {
+      filter: brightness(.93)
+    }
+
+    .btn.secondary {
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--line)
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line)
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 22px
+    }
+
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 18px;
+      position: relative;
+      overflow: hidden
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 11px
+    }
+
+    .stat .value {
+      font: 600 25px/1.1 "IBM Plex Mono", monospace;
+      letter-spacing: -.7px
+    }
+
+    .stat .delta {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .stat .delta strong {
+      color: var(--success)
+    }
+
+    .stat-icon {
+      position: absolute;
+      right: 14px;
+      top: 15px;
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      background: var(--accent-2);
+      color: var(--accent-ink)
+    }
+
+    .stat-icon svg {
+      width: 17px
+    }
+
+    .dash-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(310px, .8fr);
+      gap: 18px
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden
+    }
+
+    .panel-head {
+      padding: 17px 19px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px
+    }
+
+    .panel-head h2 {
+      font-size: 15px;
+      margin: 0
+    }
+
+    .panel-head small {
+      color: var(--muted)
+    }
+
+    .stock-bars {
+      padding: 18px 19px 20px;
+      display: grid;
+      gap: 18px
+    }
+
+    .stock-row {
+      display: grid;
+      grid-template-columns: 85px 1fr auto;
+      gap: 12px;
+      align-items: center
+    }
+
+    .stock-row b {
+      font-size: 13px
+    }
+
+    .bar {
+      height: 10px;
+      background: var(--surface-2);
+      border-radius: 10px;
+      overflow: hidden
+    }
+
+    .bar i {
+      height: 100%;
+      display: block;
+      border-radius: 10px;
+      background: var(--accent)
+    }
+
+    .stock-row .kg {
+      font: 500 12px "IBM Plex Mono", monospace;
+      color: var(--muted)
+    }
+
+    .legend {
+      display: flex;
+      gap: 18px;
+      padding: 0 19px 17px;
+      color: var(--muted);
+      font-size: 11px
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .legend i {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: var(--accent)
+    }
+
+    .legend span:last-child i {
+      background: #64b9cc
+    }
+
+    .activity {
+      list-style: none;
+      margin: 0;
+      padding: 8px 18px 13px
+    }
+
+    .activity li {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 11px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .activity li:last-child {
+      border: 0
+    }
+
+    .act-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      display: grid;
+      place-items: center;
+      color: var(--accent)
+    }
+
+    .act-icon svg {
+      width: 15px
+    }
+
+    .activity b {
+      font-size: 12px;
+      display: block
+    }
+
+    .activity p {
+      font-size: 11px;
+      color: var(--muted);
+      margin: 3px 0 0
+    }
+
+    .activity time {
+      font-size: 10px;
+      color: var(--muted);
+      white-space: nowrap
+    }
+
+    .quick {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 17px
+    }
+
+    .quick button {
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      color: var(--ink);
+      padding: 15px 8px 13px;
+      font-size: 11px;
+      font-weight: 700;
+      display: grid;
+      justify-items: center;
+      gap: 8px
+    }
+
+    .quick button:hover {
+      border-color: var(--accent)
+    }
+
+    .quick svg {
+      width: 19px;
+      color: var(--accent)
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap
+    }
+
+    .search {
+      position: relative;
+      min-width: 260px;
+      flex: 1
+    }
+
+    .search svg {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      width: 16px;
+      color: var(--muted)
+    }
+
+    .search input {
+      width: 100%;
+      height: 40px;
+      padding: 0 12px 0 37px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: 9px;
+      outline: 0
+    }
+
+    .search input:focus,
+    .field input:focus,
+    .field select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent)
+    }
+
+    .filter {
+      height: 40px;
+      padding: 0 34px 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--surface);
+      color: var(--ink);
+      font-weight: 600;
+      font-size: 13px
+    }
+
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px
+    }
+
+    .data-table th {
+      text-align: left;
+      background: var(--surface-2);
+      padding: 12px 14px;
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap
+    }
+
+    .data-table td {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: 0
+    }
+
+    .data-table tbody tr:hover {
+      background: color-mix(in srgb, var(--accent-2) 28%, transparent)
+    }
+
+    .item-title {
+      font-weight: 700
+    }
+
+    .item-sub {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 3px
+    }
+
+    .num {
+      font: 500 12px "IBM Plex Mono", monospace
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--accent-2);
+      color: var(--accent-ink)
+    }
+
+    .badge.warn {
+      background: var(--warning-bg);
+      color: var(--warning)
+    }
+
+    .badge.blue {
+      background: var(--blue-bg);
+      color: var(--blue)
+    }
+
+    .mobile-cards {
+      display: none
+    }
+
+    .stock-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 15px
+    }
+
+    .stock-card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 13px
+    }
+
+    .stock-card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 11px
+    }
+
+    .mini-label {
+      font-size: 10px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 3px
+    }
+
+    .mini-value {
+      font: 500 12px "IBM Plex Mono", monospace
+    }
+
+    .raw-strip {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 18px
+    }
+
+    .raw-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px
+    }
+
+    .raw-card h3 {
+      font-size: 14px;
+      margin: 0 0 5px
+    }
+
+    .raw-card p {
+      color: var(--muted);
+      font-size: 11px;
+      margin: 0
+    }
+
+    .raw-card strong {
+      font: 600 20px "IBM Plex Mono", monospace
+    }
+
+    .raw-progress {
+      grid-column: 1/-1;
+      height: 6px;
+      background: var(--surface-2);
+      border-radius: 6px;
+      overflow: hidden
+    }
+
+    .raw-progress i {
+      display: block;
+      height: 100%;
+      background: #64b9cc
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      margin: 0 0 22px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      overflow: hidden
+    }
+
+    .flow div {
+      padding: 15px 14px;
+      border-right: 1px solid var(--line);
+      position: relative
+    }
+
+    .flow div:last-child {
+      border: 0
+    }
+
+    .flow small {
+      font-size: 10px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 5px
+    }
+
+    .flow b {
+      font-size: 12px
+    }
+
+    .flow .done:after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--success)
+    }
+
+    dialog {
+      border: 0;
+      border-radius: 18px;
+      background: var(--surface);
+      color: var(--ink);
+      width: min(680px, calc(100vw - 28px));
+      max-height: calc(100vh - 32px);
+      padding: 0;
+      box-shadow: 0 28px 90px rgba(0, 0, 0, .28)
+    }
+
+    dialog::backdrop {
+      background: rgba(4, 20, 22, .65);
+      backdrop-filter: blur(3px)
+    }
+
+    .dialog-head {
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start
+    }
+
+    .dialog-head h2 {
+      font-size: 20px;
+      margin: 0 0 4px
+    }
+
+    .dialog-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .dialog-body {
+      padding: 20px 22px;
+      overflow: auto;
+      max-height: calc(100vh - 180px)
+    }
+
+    .dialog-foot {
+      padding: 14px 22px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+      background: var(--surface-2)
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px
+    }
+
+    .field {
+      display: grid;
+      gap: 6px
+    }
+
+    .field.full {
+      grid-column: 1/-1
+    }
+
+    .field label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted)
+    }
+
+    .field input,
+    .field select {
+      height: 41px;
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 0 11px;
+      outline: 0
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      margin: 20px 0 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .calc-box {
+      background: var(--accent-2);
+      color: var(--accent-ink);
+      border-radius: 11px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 13px
+    }
+
+    .calc-box span {
+      font-size: 10px;
+      display: block;
+      margin-bottom: 4px
+    }
+
+    .calc-box strong {
+      font: 600 13px "IBM Plex Mono", monospace
+    }
+
+    .output-line {
+      display: grid;
+      grid-template-columns: 1.3fr .65fr .9fr .6fr auto;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 9px
+    }
+
+    .output-line .field label {
+      display: none
+    }
+
+    .remove-line {
+      width: 41px;
+      height: 41px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--danger);
+      border-radius: 8px;
+      display: grid;
+      place-items: center
+    }
+
+    .remove-line svg {
+      width: 16px
+    }
+
+    .preview-note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px
+    }
+
+    .warning-box {
+      padding: 11px 13px;
+      border-radius: 9px;
+      background: var(--warning-bg);
+      color: var(--warning);
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 13px;
+      display: none
+    }
+
+    .warning-box.show {
+      display: block
+    }
+
+    .toast {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      background: var(--ink);
+      color: var(--surface);
+      border-radius: 11px;
+      padding: 13px 16px;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: .25s
+    }
+
+    .toast.show {
+      transform: none;
+      opacity: 1
+    }
+
+    .toast svg {
+      width: 17px;
+      color: #4ad5ae
+    }
+
+    .empty {
+      padding: 36px;
+      text-align: center;
+      color: var(--muted)
+    }
+
+    .drawer-shade {
+      display: none
+    }
+
+    .kpi-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 14px
+    }
+
+    .kpi-note svg {
+      width: 14px;
+      color: var(--accent)
+    }
+
+    .role-select {
+      height: 36px;
+      padding: 0 30px 0 10px;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 8px;
+      background: var(--nav-2);
+      color: #e5f5f3;
+      font-size: 12px;
+      font-weight: 700
+    }
+
+    .action-cell {
+      white-space: nowrap
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end
+    }
+
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--muted);
+      display: grid;
+      place-items: center
+    }
+
+    .action-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .action-btn.danger:hover {
+      border-color: var(--danger);
+      color: var(--danger)
+    }
+
+    .action-btn svg {
+      width: 15px
+    }
+
+    .view-only {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .btn:disabled,
+    .action-btn:disabled {
+      cursor: not-allowed;
+      opacity: .45;
+      filter: none
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 7px;
+      margin-top: 13px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line)
+    }
+
+    .card-actions .btn {
+      flex: 1;
+      min-height: 34px;
+      padding: 7px 10px
+    }
+
+    .report-controls {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr auto;
+      gap: 10px;
+      margin-bottom: 18px
+    }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px
+    }
+
+    .report-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 17px
+    }
+
+    .report-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 9px
+    }
+
+    .report-card strong {
+      font: 600 20px "IBM Plex Mono", monospace
+    }
+
+    .report-meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px
+    }
+
+    .report-table-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .report-table-title h2 {
+      margin: 0;
+      font-size: 15px
+    }
+
+    .report-table-title span {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .permission-layout {
+      display: grid;
+      grid-template-columns: minmax(260px, .75fr) minmax(0, 1.6fr);
+      gap: 18px
+    }
+
+    .permission-panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 19px
+    }
+
+    .permission-panel h2 {
+      font-size: 15px;
+      margin: 0 0 5px
+    }
+
+    .permission-panel>p {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 17px
+    }
+
+    .role-list {
+      display: grid;
+      gap: 8px
+    }
+
+    .role-card {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px
+    }
+
+    .role-card b {
+      font-size: 12px
+    }
+
+    .role-card small {
+      display: block;
+      color: var(--muted);
+      margin-top: 3px
+    }
+
+    .role-card .badge {
+      flex: 0 0 auto
+    }
+
+    .permission-toggles {
+      display: grid;
+      gap: 1px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden
+    }
+
+    .permission-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 13px 14px;
+      background: var(--surface)
+    }
+
+    .permission-row+.permission-row {
+      border-top: 1px solid var(--line)
+    }
+
+    .permission-row b {
+      font-size: 12px;
+      display: block
+    }
+
+    .permission-row small {
+      font-size: 10px;
+      color: var(--muted);
+      display: block;
+      margin-top: 3px
+    }
+
+    .switch {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      flex: 0 0 auto
+    }
+
+    .switch input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none
+    }
+
+    .switch span {
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      background: var(--line-strong);
+      transition: .18s
+    }
+
+    .switch span:after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+      transition: .18s
+    }
+
+    .switch input:checked+span {
+      background: var(--accent)
+    }
+
+    .switch input:checked+span:after {
+      transform: translateX(18px)
+    }
+
+    .switch input:disabled+span {
+      opacity: .5
+    }
+
+    .access-table td:not(:first-child),
+    .access-table th:not(:first-child) {
+      text-align: center
+    }
+
+    .access-yes {
+      color: var(--success)
+    }
+
+    .access-no {
+      color: var(--muted)
+    }
+
+    .session-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 11px 12px;
+      background: var(--blue-bg);
+      color: var(--blue);
+      border-radius: 9px;
+      font-size: 11px;
+      margin-top: 14px
+    }
+
+    .session-note svg {
+      width: 16px;
+      flex: 0 0 auto
+    }
+
+    .permission-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 17px
+    }
+
+    .permission-head h2 {
+      margin-bottom: 5px
+    }
+
+    .permission-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .role-card.active {
+      border-color: var(--accent);
+      background: var(--accent-2)
+    }
+
+    .role-card-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center
+    }
+
+    .role-card-actions .action-btn {
+      width: 30px;
+      height: 30px
+    }
+
+    .role-description {
+      font-size: 11px;
+      color: var(--muted);
+      margin: 4px 0 0
+    }
+
+    .module-permission-list {
+      display: grid;
+      gap: 10px
+    }
+
+    .module-permission-card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden
+    }
+
+    .module-permission-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--line)
+    }
+
+    .module-permission-title b {
+      font-size: 13px
+    }
+
+    .module-permission-title small {
+      display: block;
+      color: var(--muted);
+      margin-top: 3px
+    }
+
+    .module-permission-controls {
+      display: grid;
+      grid-template-columns: minmax(170px, 1.25fr) repeat(3, minmax(90px, .65fr));
+      gap: 10px;
+      padding: 12px 14px;
+      align-items: end
+    }
+
+    .permission-select {
+      width: 100%;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 0 28px 0 10px;
+      font-size: 12px;
+      font-weight: 600
+    }
+
+    .mini-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 38px;
+      padding: 0 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface)
+    }
+
+    .mini-toggle span:first-child {
+      font-size: 11px;
+      font-weight: 700
+    }
+
+    .mini-toggle .switch {
+      transform: scale(.82);
+      transform-origin: right center
+    }
+
+    .permission-help {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      padding: 11px 12px;
+      border-radius: 9px;
+      background: var(--warning-bg);
+      color: var(--warning);
+      font-size: 11px;
+      margin-bottom: 14px
+    }
+
+    .permission-help svg {
+      width: 16px;
+      flex: 0 0 auto
+    }
+
+    .approval-list {
+      display: grid;
+      gap: 9px
+    }
+
+    .approval-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-2)
+    }
+
+    .approval-item b {
+      font-size: 12px
+    }
+
+    .approval-item p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 11px
+    }
+
+    .approval-actions {
+      display: flex;
+      align-items: center;
+      gap: 7px
+    }
+
+    .role-summary {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px
+    }
+
+    .role-summary .badge {
+      font-size: 11px
+    }
+
+    .permission-section {
+      margin-top: 18px
+    }
+
+    .permission-section h3 {
+      font-size: 13px;
+      margin: 0 0 10px
+    }
+
+    .needs-approval {
+      background: var(--warning-bg);
+      color: var(--warning)
+    }
+
+    .master-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px
+    }
+
+    .master-summary-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 16px
+    }
+
+    .master-summary-card small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      margin-bottom: 7px
+    }
+
+    .master-summary-card strong {
+      font: 600 21px "IBM Plex Mono", monospace
+    }
+
+    .master-summary-card p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 11px
+    }
+
+    .master-layout {
+      display: grid;
+      grid-template-columns: 230px minmax(0, 1fr);
+      gap: 18px
+    }
+
+    .master-nav {
+      display: grid;
+      gap: 6px;
+      align-content: start
+    }
+
+    .master-nav button {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      border-radius: 9px;
+      padding: 10px 11px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 12px
+    }
+
+    .master-nav button:hover {
+      background: var(--surface-2);
+      color: var(--ink)
+    }
+
+    .master-nav button.active {
+      background: var(--accent-2);
+      color: var(--accent-ink);
+      border-color: color-mix(in srgb, var(--accent) 22%, var(--line))
+    }
+
+    .master-nav .count {
+      font: 500 10px "IBM Plex Mono", monospace
+    }
+
+    .master-content-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 17px 18px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .master-content-head h2 {
+      font-size: 16px;
+      margin: 0 0 4px
+    }
+
+    .master-content-head p {
+      font-size: 11px;
+      color: var(--muted);
+      margin: 0
+    }
+
+    .master-toolbar {
+      padding: 14px 18px 0
+    }
+
+    .master-empty {
+      padding: 42px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px
+    }
+
+    .master-mobile {
+      display: none
+    }
+
+    .dependency-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 11px 12px;
+      border-radius: 9px;
+      background: var(--blue-bg);
+      color: var(--blue);
+      font-size: 11px;
+      margin-top: 14px
+    }
+
+    .dependency-note svg {
+      width: 16px;
+      flex: 0 0 auto
+    }
+
+    .packing-fields {
+      display: none
+    }
+
+    .packing-fields.show {
+      display: contents
+    }
+
+    @media(max-width:1100px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr)
+      }
+
+      .dash-grid {
+        grid-template-columns: 1fr
+      }
+
+      .output-line {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .output-line .remove-line {
+        grid-column: 2;
+        justify-self: end
+      }
+
+      .flow {
+        grid-template-columns: repeat(3, 1fr)
+      }
+
+      .flow div {
+        border-bottom: 1px solid var(--line)
+      }
+
+      .report-grid {
+        grid-template-columns: repeat(2, 1fr)
+      }
+
+      .permission-layout {
+        grid-template-columns: 1fr
+      }
+
+      .master-summary {
+        grid-template-columns: repeat(2, 1fr)
+      }
+    }
+
+    @media(max-width:760px) {
+      .app {
+        display: block
+      }
+
+      .sidebar {
+        display: none;
+        width: 250px
+      }
+
+      .sidebar.open {
+        display: flex
+      }
+
+      .drawer-shade {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .48);
+        z-index: 29;
+        opacity: 0;
+        pointer-events: none;
+        transition: .2s
+      }
+
+      .drawer-shade.open {
+        opacity: 1;
+        pointer-events: auto
+      }
+
+      .main {
+        min-width: 0
+      }
+
+      .topbar {
+        height: 62px;
+        padding: 0 16px
+      }
+
+      .menu-btn {
+        display: grid
+      }
+
+      .breadcrumbs {
+        font-size: 12px
+      }
+
+      .plant-chip {
+        display: none
+      }
+
+      .role-select {
+        max-width: 138px
+      }
+
+      .page {
+        padding: 22px 16px 50px
+      }
+
+      .page-head {
+        align-items: flex-start;
+        flex-direction: column
+      }
+
+      .page-head h1 {
+        font-size: 25px
+      }
+
+      .head-actions {
+        width: 100%
+      }
+
+      .head-actions .btn {
+        flex: 1
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px
+      }
+
+      .stat {
+        padding: 14px
+      }
+
+      .stat .value {
+        font-size: 19px
+      }
+
+      .stat-icon {
+        display: none
+      }
+
+      .dash-grid {
+        gap: 12px
+      }
+
+      .table-wrap:not(.keep-mobile) {
+        display: none
+      }
+
+      .mobile-cards {
+        display: grid;
+        gap: 10px
+      }
+
+      .raw-strip {
+        grid-template-columns: 1fr
+      }
+
+      .flow {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr
+      }
+
+      .field.full {
+        grid-column: auto
+      }
+
+      .calc-box {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .output-line {
+        grid-template-columns: 1fr
+      }
+
+      .output-line .remove-line {
+        grid-column: auto;
+        justify-self: start;
+        width: 100%
+      }
+
+      .toolbar>* {
+        width: 100%
+      }
+
+      .search {
+        min-width: 0
+      }
+
+      .toast {
+        left: 16px;
+        right: 16px;
+        bottom: 16px
+      }
+
+      .dialog-body {
+        padding: 17px
+      }
+
+      .dialog-head {
+        padding: 17px
+      }
+
+      .dialog-foot {
+        padding: 12px 17px
+      }
+
+      .report-controls {
+        grid-template-columns: 1fr
+      }
+
+      .report-controls .btn {
+        width: 100%
+      }
+
+      .report-grid {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .permission-panel {
+        padding: 15px
+      }
+
+      .access-table {
+        font-size: 11px
+      }
+
+      .access-table th,
+      .access-table td {
+        padding: 10px 7px
+      }
+
+      .report-table-title {
+        align-items: flex-start;
+        flex-direction: column
+      }
+
+      .permission-head {
+        align-items: stretch;
+        flex-direction: column
+      }
+
+      .permission-head .btn {
+        width: 100%
+      }
+
+      .module-permission-controls {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .module-permission-controls .create-policy {
+        grid-column: 1/-1
+      }
+
+      .approval-item {
+        grid-template-columns: 1fr
+      }
+
+      .approval-actions .btn {
+        flex: 1
+      }
+
+      .role-card {
+        align-items: flex-start;
+        flex-direction: column
+      }
+
+      .role-card-actions {
+        width: 100%
+      }
+
+      .role-card-actions .filter {
+        flex: 1;
+        width: auto
+      }
+
+      .master-layout {
+        grid-template-columns: 1fr
+      }
+
+      .master-nav {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .master-summary {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .master-content-head {
+        flex-direction: column
+      }
+
+      .master-content-head .btn {
+        width: 100%
+      }
+
+      .master-table {
+        display: none
+      }
+
+      .master-mobile {
+        display: grid;
+        gap: 10px;
+        padding: 14px 18px 18px
+      }
+    }
+
+    @media(max-width:400px) {
+      .stats {
+        grid-template-columns: 1fr
+      }
+
+      .quick {
+        grid-template-columns: 1fr
+      }
+
+      .flow {
+        grid-template-columns: 1fr
+      }
+
+      .stock-row {
+        grid-template-columns: 70px 1fr
+      }
+
+      .stock-row .kg {
+        grid-column: 2
+      }
+
+      .calc-box {
+        grid-template-columns: 1fr 1fr
+      }
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      * {
+        scroll-behavior: auto !important;
+        transition: none !important
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="context"><b>Aquageno Exim</b><small>All plants · live ledger</small></div>
+      <nav class="nav">
+        <button class="active" data-view="dashboard"><i data-lucide="layout-dashboard"></i>Dashboard</button>
+        <button data-view="purchases"><i data-lucide="shopping-cart"></i>Purchases</button>
+        <button data-view="production"><i data-lucide="factory"></i>Production</button>
+        <button data-view="inventory"><i data-lucide="boxes"></i>Stock</button>
+        <button data-view="transfers"><i data-lucide="arrow-left-right"></i>Transfers</button>
+        <button data-view="shipments"><i data-lucide="truck"></i>Shipments</button>
+        <button data-view="reports"><i data-lucide="chart-no-axes-combined"></i>Reports</button>
+        <button data-view="masters"><i data-lucide="database"></i>Master Data</button>
+        <button data-view="permissions"><i data-lucide="shield-check"></i>Permissions</button>
+      </nav>
+      <div class="side-foot">
+        <div class="avatar">AK</div>
+        <div><b>Admin · Kerala</b><small>All-location access</small></div>
+      </div>
+    </aside>
+    <div class="drawer-shade" id="shade"></div>
+    <section class="main">
+      <header class="topbar">
+        <div style="display:flex;align-items:center;gap:12px"><button class="btn secondary menu-btn" id="menuBtn"
+            aria-label="Open navigation" style="padding:8px 10px"><i data-lucide="menu"></i><span>Menu</span></button>
+          <div class="breadcrumbs">Operations <span>/</span> <strong id="crumb">Dashboard</strong></div>
+        </div>
+        <div class="top-actions">
+          <div class="plant-chip"><span class="dot-live"></span><span>All locations</span></div><select
+            class="role-select" id="rolePreview" aria-label="Preview access as role">
+            <option>Administrator</option>
+            <option>Production Manager</option>
+            <option>Store Operator</option>
+            <option>Accounts Viewer</option>
+          </select>
+        </div>
+      </header>
+      <main class="page">
+        <section class="view active" id="view-dashboard">
+          <div class="page-head">
+            <div>
+              <h1>Today’s stock position</h1>
+              <p>Snapshot across Unit A and Unit B · 24 September 2026</p>
+            </div>
+            <div class="head-actions"><button class="btn secondary" data-open="purchaseDialog"><i
+                  data-lucide="plus"></i>Purchase</button><button class="btn primary" data-open="productionDialog"><i
+                  data-lucide="factory"></i>New batch</button></div>
+          </div>
+          <div class="stats" id="dashboardStats"></div>
+          <div class="dash-grid">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2>Finished stock by location</h2><small>Net product weight</small>
+                </div><button class="btn ghost" data-view="inventory">View stock</button>
+              </div>
+              <div class="stock-bars" id="stockBars"></div>
+              <div class="legend"><span><i></i>Finished stock</span><span><i></i>Raw material balance</span></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Quick actions</h2><small>Post a transaction</small>
+              </div>
+              <div class="quick"><button data-open="purchaseDialog"><i
+                    data-lucide="shopping-cart"></i>Purchase</button><button data-open="transferDialog"><i
+                    data-lucide="arrow-left-right"></i>Transfer</button><button data-open="shipmentDialog"><i
+                    data-lucide="truck"></i>Shipment</button></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Production & dispatch</h2><small>Current operational view</small>
+              </div>
+              <div class="stock-bars">
+                <div class="stock-row"><b>PB-0924-011</b>
+                  <div class="bar"><i style="width:100%"></i></div><span class="kg">Completed</span>
+                </div>
+                <div class="stock-row"><b>PB-0924-012</b>
+                  <div class="bar"><i style="width:68%"></i></div><span class="kg">In progress</span>
+                </div>
+                <div class="stock-row"><b>SHP-0924-07</b>
+                  <div class="bar"><i style="width:42%;background:#64b9cc"></i></div><span class="kg">Loading</span>
+                </div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h2>Recent activity</h2><small>Transaction ledger</small>
+              </div>
+              <ul class="activity" id="activityList"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-purchases">
+          <div class="page-head">
+            <div>
+              <h1>Purchase receipts</h1>
+              <p>Raw material received and assigned to a plant.</p>
+            </div><button class="btn primary" data-open="purchaseDialog"><i data-lucide="plus"></i>New purchase</button>
+          </div>
+          <div class="raw-strip" id="rawCards"></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Receipt</th>
+                  <th>Supplier / bill</th>
+                  <th>Receiving plant</th>
+                  <th>Raw material</th>
+                  <th>Quantity</th>
+                  <th>Value</th>
+                  <th>Status</th>
+                  <th style="text-align:right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="purchaseRows"></tbody>
+            </table>
+          </div>
+          <div class="mobile-cards" id="purchaseCards"></div>
+        </section>
+
+        <section class="view" id="view-production">
+          <div class="page-head">
+            <div>
+              <h1>Production batches</h1>
+              <p>Convert raw inputs into traceable finished stock.</p>
+            </div><button class="btn primary" data-open="productionDialog"><i data-lucide="plus"></i>New batch</button>
+          </div>
+          <div class="flow">
+            <div class="done"><small>01 · SOURCE</small><b>Purchase receipt</b></div>
+            <div class="done"><small>02 · INPUT</small><b>Raw stock by plant</b></div>
+            <div class="done"><small>03 · OUTPUT</small><b>Slabs → cases</b></div>
+            <div><small>04 · WEIGHT</small><b>Net + tare + gain</b></div>
+            <div><small>05 · POSTING</small><b>Finished stock</b></div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Batch</th>
+                  <th>Plant / source</th>
+                  <th>Raw input</th>
+                  <th>Finished output</th>
+                  <th>Yield</th>
+                  <th>Status</th>
+                  <th style="text-align:right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="productionRows"></tbody>
+            </table>
+          </div>
+          <div class="mobile-cards" id="productionCards"></div>
+        </section>
+
+        <section class="view" id="view-inventory">
+          <div class="page-head">
+            <div>
+              <h1>Location-wise finished stock</h1>
+              <p>Cases and loose slabs are calculated from the ledger—not edited by hand.</p>
+            </div><button class="btn secondary" data-open="transferDialog"><i data-lucide="arrow-left-right"></i>Move
+              stock</button>
+          </div>
+          <div class="toolbar">
+            <div class="search"><i data-lucide="search"></i><input id="stockSearch"
+                placeholder="Search product, grade or packing" /></div><select class="filter" id="locationFilter">
+              <option>All locations</option>
+              <option>Unit A</option>
+              <option>Unit B</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Location</th>
+                  <th>Product / grade</th>
+                  <th>Packing</th>
+                  <th>Cases</th>
+                  <th>Loose</th>
+                  <th>Total slabs</th>
+                  <th>Net weight</th>
+                  <th>Gross weight</th>
+                </tr>
+              </thead>
+              <tbody id="stockRows"></tbody>
+            </table>
+          </div>
+          <div class="mobile-cards" id="stockCards"></div>
+        </section>
+
+        <section class="view" id="view-transfers">
+          <div class="page-head">
+            <div>
+              <h1>Inter-plant transfers</h1>
+              <p>One confirmation adjusts both source and destination stock.</p>
+            </div><button class="btn primary" data-open="transferDialog"><i data-lucide="plus"></i>New transfer</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Transfer</th>
+                  <th>Route</th>
+                  <th>Item</th>
+                  <th>Quantity</th>
+                  <th>Net weight</th>
+                  <th>Status</th>
+                  <th style="text-align:right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="transferRows"></tbody>
+            </table>
+          </div>
+          <div class="mobile-cards" id="transferCards"></div>
+        </section>
+
+        <section class="view" id="view-shipments">
+          <div class="page-head">
+            <div>
+              <h1>Sale & shipment</h1>
+              <p>Availability checked before stock is deducted.</p>
+            </div><button class="btn primary" data-open="shipmentDialog"><i data-lucide="plus"></i>New shipment</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Shipment</th>
+                  <th>Customer / destination</th>
+                  <th>Dispatch plant</th>
+                  <th>Lines</th>
+                  <th>Net weight</th>
+                  <th>Value</th>
+                  <th>Status</th>
+                  <th style="text-align:right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="shipmentRows"></tbody>
+            </table>
+          </div>
+          <div class="mobile-cards" id="shipmentCards"></div>
+        </section>
+
+        <section class="view" id="view-reports">
+          <div class="page-head">
+            <div>
+              <h1>Operational reports</h1>
+              <p>Review stock, purchases, production, transfers, and shipment values.</p>
+            </div>
+          </div>
+          <div class="report-controls"><select class="filter" id="reportType" aria-label="Report type">
+              <option value="stock">Stock position</option>
+              <option value="purchases">Purchase summary</option>
+              <option value="production">Production yield</option>
+              <option value="transfers">Transfer log</option>
+              <option value="shipments">Shipment sales</option>
+            </select><select class="filter" id="reportLocation" aria-label="Report location">
+              <option>All locations</option>
+              <option>Unit A</option>
+              <option>Unit B</option>
+            </select><button class="btn secondary" id="exportReport"><i data-lucide="download"></i>Export CSV</button>
+          </div>
+          <div class="report-grid" id="reportStats"></div>
+          <div class="table-wrap">
+            <div class="report-table-title">
+              <h2 id="reportTitle">Stock position</h2><span>As of 24 September 2026</span>
+            </div>
+            <table class="data-table">
+              <thead id="reportHead"></thead>
+              <tbody id="reportRows"></tbody>
+            </table>
+          </div>
+          <div class="mobile-cards" id="reportCards"></div>
+        </section>
+
+        <section class="view" id="view-masters">
+          <div class="page-head">
+            <div>
+              <h1>Master data</h1>
+              <p>Maintain the controlled lists used across purchases, production, stock, transfers, and shipments.</p>
+            </div><button class="btn primary" id="newMasterBtn"><i data-lucide="plus"></i>Add master record</button>
+          </div>
+          <div class="master-summary" id="masterSummary"></div>
+          <div class="master-layout">
+            <div class="permission-panel">
+              <div class="permission-head">
+                <div>
+                  <h2>Master groups</h2>
+                  <p>Choose a list to review or maintain.</p>
+                </div>
+              </div>
+              <div class="master-nav" id="masterNav"></div>
+              <div class="dependency-note"><i data-lucide="git-branch"></i><span>Active records feed transaction
+                  dropdowns. Inactive records remain visible in historical entries but cannot be selected for new
+                  work.</span></div>
+            </div>
+            <div class="panel">
+              <div class="master-content-head">
+                <div>
+                  <h2 id="masterTitle">Products</h2>
+                  <p id="masterDescription"></p>
+                </div><button class="btn secondary" id="addCurrentMaster"><i data-lucide="plus"></i>Add product</button>
+              </div>
+              <div class="master-toolbar">
+                <div class="toolbar">
+                  <div class="search"><i data-lucide="search"></i><input id="masterSearch"
+                      placeholder="Search code, name or details"></div><select class="filter" id="masterStatus">
+                    <option>All statuses</option>
+                    <option>Active</option>
+                    <option>Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-wrap master-table" style="border:0;border-radius:0">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Name</th>
+                      <th>Details / usage</th>
+                      <th>Status</th>
+                      <th style="text-align:right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="masterRows"></tbody>
+                </table>
+              </div>
+              <div class="master-mobile" id="masterCards"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-permissions">
+          <div class="page-head">
+            <div>
+              <h1>Permissions & approvals</h1>
+              <p>Create roles, assign module-level access, and route selected entries for administrator approval.</p>
+            </div>
+          </div>
+          <div class="permission-layout">
+            <div class="permission-panel">
+              <div class="permission-head">
+                <div>
+                  <h2>Roles & team</h2>
+                  <p>Roles are created here, then assigned to people.</p>
+                </div><button class="btn secondary" id="newRoleBtn"><i data-lucide="plus"></i>New role</button>
+              </div>
+              <div class="role-list" id="userRoleList"></div>
+              <div class="session-note"><i data-lucide="info"></i><span>Changes apply immediately while this demo is
+                  open. A production build would store them securely on the server.</span></div>
+            </div>
+            <div class="permission-panel">
+              <div class="permission-head">
+                <div>
+                  <h2>Role permissions</h2>
+                  <p>Configure every module independently for the selected role.</p>
+                </div><button class="btn ghost" id="deleteRoleBtn"><i data-lucide="trash-2"></i>Delete role</button>
+              </div>
+              <div class="field" style="margin-bottom:14px"><label>Configure role</label><select
+                  id="managedRoleSelect"></select></div>
+              <div class="permission-help"><i data-lucide="workflow"></i><span><strong>Needs admin approval</strong>
+                  lets a user submit an entry, but stock and ledger balances stay unchanged until an authorised approver
+                  accepts it.</span></div>
+              <div class="role-summary" id="roleSummary"></div>
+              <div class="module-permission-list" id="permissionToggles"></div>
+            </div>
+          </div>
+          <div class="permission-panel permission-section">
+            <div class="permission-head">
+              <div>
+                <h2>Approval queue</h2>
+                <p>Pending submissions are posted only after approval.</p>
+              </div><span class="badge warn" id="approvalCount">0 pending</span>
+            </div>
+            <div class="approval-list" id="approvalQueue"></div>
+          </div>
+          <div class="table-wrap" style="margin-top:18px">
+            <div class="report-table-title">
+              <h2>Access overview</h2><span>Effective module access by role</span>
+            </div>
+            <table class="data-table access-table">
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>Purchases</th>
+                  <th>Production</th>
+                  <th>Transfers</th>
+                  <th>Shipments</th>
+                  <th>Reports</th>
+                  <th>Master data</th>
+                </tr>
+              </thead>
+              <tbody id="accessRows"></tbody>
+            </table>
+          </div>
+          <div class="mobile-cards" id="accessCards"></div>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <dialog id="purchaseDialog">
+    <div class="dialog-head">
+      <div>
+        <h2>Record purchase receipt</h2>
+        <p>Confirmed quantity increases raw stock at the receiving plant.</p>
+      </div><button class="icon-btn" data-close aria-label="Close">×</button>
+    </div>
+    <form id="purchaseForm">
+      <div class="dialog-body">
+        <div class="form-grid">
+          <div class="field"><label>Supplier</label><select name="supplier" id="purchaseSupplier">
+              <option>Merlin Seafood</option>
+              <option>Oceanfresh Traders</option>
+              <option>Coastal Catch Co.</option>
+            </select></div>
+          <div class="field"><label>Supplier bill no.</label><input name="bill" value="MRN-2409-019" required></div>
+          <div class="field"><label>Receiving plant</label><select name="location" id="purchaseLocation">
+              <option>Unit A</option>
+              <option>Unit B</option>
+            </select></div>
+          <div class="field"><label>Receipt date</label><input name="date" type="date" value="2026-09-24" required>
+          </div>
+          <div class="field"><label>Raw material</label><select name="material" id="purchaseMaterial">
+              <option>Raw Squid</option>
+              <option>Squid Whole</option>
+              <option>Squid Tube</option>
+            </select></div>
+          <div class="field"><label>Quantity received (kg)</label><input name="qty" type="number" min="1" step="0.01"
+              value="650" required></div>
+          <div class="field"><label>Rate (₹ / kg)</label><input name="rate" type="number" min="0" step="0.01"
+              value="185" required></div>
+        </div>
+        <div class="kpi-note"><i data-lucide="shield-check"></i>Receipt will be confirmed and posted to the raw-material
+          ledger.</div>
+      </div>
+      <div class="dialog-foot"><button type="button" class="btn secondary" data-close>Cancel</button><button
+          class="btn primary" type="submit">Confirm receipt</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="productionDialog">
+    <div class="dialog-head">
+      <div>
+        <h2>Complete production batch</h2>
+        <p>Slabs form complete cases; any remainder stays loose.</p>
+      </div><button class="icon-btn" data-close aria-label="Close">×</button>
+    </div>
+    <form id="productionForm">
+      <div class="dialog-body">
+        <div class="form-grid">
+          <div class="field"><label>Production plant</label><select name="location" id="prodLocation">
+              <option>Unit A</option>
+              <option>Unit B</option>
+            </select></div>
+          <div class="field"><label>Source purchase</label><select name="purchase">
+              <option>PR-0924-018 · Merlin</option>
+              <option>PR-0923-009 · Oceanfresh</option>
+            </select></div>
+          <div class="field"><label>Raw input (kg)</label><input name="raw" id="prodRaw" type="number" min="1"
+              step="0.01" value="720" required></div>
+          <div class="field"><label>Box / tare weight (kg)</label><input name="tare" id="prodTare" type="number" min="0"
+              step="0.01" value="34.5" required></div>
+          <div class="field"><label>Water / process gain-loss (kg)</label><input name="gain" id="prodGain" type="number"
+              step="0.01" value="-56" required></div>
+          <div class="field"><label>Wastage / rejection (kg)</label><input name="waste" type="number" min="0"
+              step="0.01" value="0"></div>
+        </div>
+        <div class="section-label"><span>FINISHED OUTPUT LINES</span><button type="button" class="btn ghost"
+            id="addOutput"><i data-lucide="plus"></i>Add line</button></div>
+        <div id="outputLines"></div>
+        <div class="calc-box" id="productionCalc"></div>
+        <div class="warning-box" id="productionWarning"></div>
+      </div>
+      <div class="dialog-foot"><button type="button" class="btn secondary" data-close>Cancel</button><button
+          class="btn primary" type="submit">Complete & post stock</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="transferDialog">
+    <div class="dialog-head">
+      <div>
+        <h2>Transfer finished stock</h2>
+        <p>Source and destination balances update together.</p>
+      </div><button class="icon-btn" data-close aria-label="Close">×</button>
+    </div>
+    <form id="transferForm">
+      <div class="dialog-body">
+        <div class="form-grid">
+          <div class="field"><label>From plant</label><select name="from" id="transferFrom">
+              <option>Unit A</option>
+              <option>Unit B</option>
+            </select></div>
+          <div class="field"><label>To plant</label><select name="to" id="transferTo">
+              <option>Unit B</option>
+              <option>Unit A</option>
+            </select></div>
+          <div class="field full"><label>Stock item</label><select name="item" id="transferItem"></select></div>
+          <div class="field"><label>Complete cases</label><input name="cases" id="transferCases" type="number" min="0"
+              step="1" value="10"></div>
+          <div class="field"><label>Loose slabs</label><input name="loose" id="transferLoose" type="number" min="0"
+              step="1" value="0"></div>
+        </div>
+        <div class="calc-box" id="transferCalc"></div>
+        <div class="warning-box" id="transferWarning"></div>
+      </div>
+      <div class="dialog-foot"><button type="button" class="btn secondary" data-close>Cancel</button><button
+          class="btn primary" type="submit">Confirm transfer</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="shipmentDialog">
+    <div class="dialog-head">
+      <div>
+        <h2>Create shipment</h2>
+        <p>Confirmed quantity is deducted from the dispatch plant.</p>
+      </div><button class="icon-btn" data-close aria-label="Close">×</button>
+    </div>
+    <form id="shipmentForm">
+      <div class="dialog-body">
+        <div class="form-grid">
+          <div class="field"><label>Customer</label><select name="customer" id="shipCustomer">
+              <option>Malabar Exports</option>
+              <option>Blue Coast Foods</option>
+              <option>Gulf Marine Trading</option>
+            </select></div>
+          <div class="field"><label>Shipment reference</label><input name="reference" value="SHP-0924-08" required>
+          </div>
+          <div class="field"><label>Dispatch plant</label><select name="location" id="shipLocation">
+              <option>Unit A</option>
+              <option>Unit B</option>
+            </select></div>
+          <div class="field"><label>Destination</label><input name="destination" value="Kochi Port" required></div>
+          <div class="field full"><label>Stock item</label><select name="item" id="shipItem"></select></div>
+          <div class="field"><label>Complete cases</label><input name="cases" id="shipCases" type="number" min="0"
+              step="1" value="12"></div>
+          <div class="field"><label>Loose slabs</label><input name="loose" id="shipLoose" type="number" min="0" step="1"
+              value="0"></div>
+          <div class="field"><label>Rate (₹ / kg)</label><input name="rate" id="shipRate" type="number" min="0"
+              step="0.01" value="420"></div>
+        </div>
+        <div class="calc-box" id="shipmentCalc"></div>
+        <div class="warning-box" id="shipmentWarning"></div>
+      </div>
+      <div class="dialog-foot"><button type="button" class="btn secondary" data-close>Cancel</button><button
+          class="btn primary" type="submit">Confirm shipment</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="editDialog">
+    <div class="dialog-head">
+      <div>
+        <h2 id="editDialogTitle">Edit entry</h2>
+        <p id="editDialogSubtitle">Update the selected transaction record.</p>
+      </div><button class="icon-btn" data-close aria-label="Close">×</button>
+    </div>
+    <form id="editForm">
+      <div class="dialog-body">
+        <div class="form-grid" id="editFields"></div>
+        <div class="kpi-note"><i data-lucide="history"></i>Changes are recorded in the activity feed for this demo
+          session.</div>
+      </div>
+      <div class="dialog-foot"><button type="button" class="btn secondary" data-close>Cancel</button><button
+          class="btn primary" type="submit">Save changes</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="deleteDialog">
+    <div class="dialog-head">
+      <div>
+        <h2>Delete entry?</h2>
+        <p>This action requires delete permission.</p>
+      </div><button class="icon-btn" data-close aria-label="Close">×</button>
+    </div>
+    <div class="dialog-body">
+      <p id="deleteMessage" style="margin:0;line-height:1.6;font-size:14px"></p>
+      <div class="session-note"><i data-lucide="shield-alert"></i><span>The entry will be removed from transaction lists
+          and reports in this demo session.</span></div>
+    </div>
+    <div class="dialog-foot"><button type="button" class="btn secondary" data-close>Cancel</button><button type="button"
+        class="btn" id="confirmDelete" style="background:var(--danger);color:white">Delete entry</button></div>
+  </dialog>
+
+  <dialog id="roleDialog">
+    <div class="dialog-head">
+      <div>
+        <h2>Create a role</h2>
+        <p>Start with no access, then configure each module.</p>
+      </div><button class="icon-btn" data-close aria-label="Close">×</button>
+    </div>
+    <form id="roleForm">
+      <div class="dialog-body">
+        <div class="form-grid">
+          <div class="field full"><label>Role name</label><input name="name" placeholder="e.g. Production Data Entry"
+              maxlength="40" required></div>
+          <div class="field full"><label>Description</label><input name="description"
+              placeholder="What this role is responsible for" maxlength="80" required></div>
+        </div>
+      </div>
+      <div class="dialog-foot"><button type="button" class="btn secondary" data-close>Cancel</button><button
+          class="btn primary" type="submit">Create role</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="masterDialog">
+    <div class="dialog-head">
+      <div>
+        <h2 id="masterDialogTitle">Add master record</h2>
+        <p id="masterDialogSubtitle">Create a controlled value for transaction entry.</p>
+      </div><button class="icon-btn" data-close aria-label="Close">×</button>
+    </div>
+    <form id="masterForm">
+      <div class="dialog-body">
+        <div class="form-grid">
+          <div class="field"><label>Master group</label><select name="category" id="masterCategory"></select></div>
+          <div class="field"><label>Code</label><input name="code" maxlength="24" placeholder="e.g. FG-003" required>
+          </div>
+          <div class="field full"><label>Name</label><input name="name" maxlength="60" placeholder="Record name"
+              required></div>
+          <div class="field full"><label>Details / usage</label><input name="details" maxlength="100"
+              placeholder="Description shown to users" required></div>
+          <div class="packing-fields" id="packingFields">
+            <div class="field"><label>Slabs per case</label><input name="spc" type="number" min="1" step="1" value="6">
+            </div>
+            <div class="field"><label>Slab weight (kg)</label><input name="slab" type="number" min="0.01" step="0.01"
+                value="1.6"></div>
+            <div class="field"><label>Case tare (kg)</label><input name="tare" type="number" min="0" step="0.01"
+                value="0.42"></div>
+          </div>
+          <div class="field"><label>Status</label><select name="status">
+              <option>Active</option>
+              <option>Inactive</option>
+            </select></div>
+        </div>
+        <div class="dependency-note"><i data-lucide="info"></i><span>Codes stay stable for traceability. Deactivating a
+            record is safer than deleting one already used in transactions.</span></div>
+      </div>
+      <div class="dialog-foot"><button type="button" class="btn ghost" id="deleteMasterBtn"
+          style="margin-right:auto;color:var(--danger)"><i data-lucide="trash-2"></i>Delete</button><button
+          type="button" class="btn secondary" data-close>Cancel</button><button class="btn primary" type="submit">Save
+          record</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast"><i data-lucide="check-circle-2"></i><span></span></div>
+  <script>
+    (function () {
+      var packings = {
+        '6x1.6': { label: '6 × 1.6 Kg', spc: 6, slab: 1.6, tare: .42 }, '10x2': { label: '10 × 2 Kg', spc: 10, slab: 2, tare: .65 },
+        '6x1.8': { label: '6 × 1.8 Kg', spc: 6, slab: 1.8, tare: .45 }, '4x5': { label: '4 × 5 Kg', spc: 4, slab: 5, tare: .7 }, '5x3.6': { label: '5 × 3.6 Kg', spc: 5, slab: 3.6, tare: .6 }
+      };
+      var state = {
+        raw: { 'Unit A': { received: 1878, consumed: 1200 }, 'Unit B': { received: 920, consumed: 510 } },
+        stock: [
+          { location: 'Unit A', product: 'Squid Whole BC', grade: '3/6', packing: '6x1.6', slabs: 415 },
+          { location: 'Unit A', product: 'Squid Whole BC', grade: '6/10', packing: '10x2', slabs: 450 },
+          { location: 'Unit A', product: 'Squid Whole BC', grade: '10/15', packing: '4x5', slabs: 106 },
+          { location: 'Unit A', product: 'Squid Whole Semi Needle', grade: '6/10', packing: '6x1.8', slabs: 468 },
+          { location: 'Unit B', product: 'Squid Whole BC', grade: '3/6', packing: '6x1.6', slabs: 124 },
+          { location: 'Unit B', product: 'Squid Whole BC', grade: 'U/2', packing: '5x3.6', slabs: 160 },
+          { location: 'Unit B', product: 'Squid Whole Semi Needle', grade: '10/20', packing: '6x1.8', slabs: 1020 },
+          { location: 'Unit B', product: 'Squid Whole BC', grade: '10/20', packing: '10x2', slabs: 600 }
+        ],
+        purchases: [
+          { id: 'PR-0924-018', supplier: 'Merlin Seafood', bill: 'MRN-0924-118', location: 'Unit A', material: 'Raw Squid', qty: 1878, rate: 182, status: 'Confirmed' },
+          { id: 'PR-0923-009', supplier: 'Oceanfresh Traders', bill: 'OFT-7714', location: 'Unit B', material: 'Raw Squid', qty: 920, rate: 179, status: 'Confirmed' }
+        ],
+        batches: [
+          { id: 'PB-0924-011', location: 'Unit A', source: 'PR-0924-018', raw: 720, output: 664, yield: 92.22, status: 'Completed', desc: 'Squid Whole BC · 3/6 · 6 × 1.6 Kg' },
+          { id: 'PB-0924-012', location: 'Unit B', source: 'PR-0923-009', raw: 510, output: 498.6, yield: 97.76, status: 'In progress', desc: 'Squid Whole Semi Needle · 10/20 · 6 × 1.8 Kg' },
+          { id: 'PB-0924-013', location: 'Unit A', source: 'PR-0924-018', raw: 240, output: 230.4, yield: 96, status: 'Pending approval', desc: 'Squid Whole BC · 3/6 · 6 × 1.6 Kg', submittedBy: 'Production Manager', pendingLines: [{ product: 'Squid Whole BC', grade: '3/6', packing: '6x1.6', slabs: 144 }] }
+        ],
+        transfers: [{ id: 'TR-0924-004', from: 'Unit A', to: 'Unit B', desc: 'Squid Whole BC · 6/10 · 10 × 2 Kg', qty: '20 cases', weight: 400, status: 'Received' }],
+        shipments: [{ id: 'SHP-0924-07', customer: 'Malabar Exports', destination: 'Kochi Port', location: 'Unit A', lines: 3, weight: 1080, value: 453600, status: 'Loading' }],
+        activity: [
+          { icon: 'factory', title: 'PB-0924-011 completed', detail: '415 slabs → 69 cases + 1 loose', time: '10:42' },
+          { icon: 'arrow-left-right', title: 'TR-0924-004 received', detail: '20 cases moved to Unit B', time: '09:55' },
+          { icon: 'shopping-cart', title: 'PR-0924-018 confirmed', detail: '1,878 kg received at Unit A', time: '08:18' }
+        ]
+      };
+      var masterData = {
+        products: [{ code: 'FG-001', name: 'Squid Whole BC', details: 'Finished good · whole cleaned squid', status: 'Active' }, { code: 'FG-002', name: 'Squid Whole Semi Needle', details: 'Finished good · semi-needle process', status: 'Active' }],
+        rawMaterials: [{ code: 'RM-001', name: 'Raw Squid', details: 'Primary purchased raw material', status: 'Active' }, { code: 'RM-002', name: 'Squid Whole', details: 'Whole squid input', status: 'Active' }, { code: 'RM-003', name: 'Squid Tube', details: 'Cleaned tube input', status: 'Active' }],
+        units: [{ code: 'UOM-KG', name: 'Kilogram', details: 'kg · 2 decimal precision', status: 'Active' }, { code: 'UOM-NOS', name: 'Number', details: 'nos · whole quantity', status: 'Active' }, { code: 'UOM-CASE', name: 'Case', details: 'case · finished packing unit', status: 'Active' }, { code: 'UOM-SLAB', name: 'Slab', details: 'slab · production output unit', status: 'Active' }],
+        grades: [{ code: 'GR-36', name: '3/6', details: 'Product quality / size grade', status: 'Active' }, { code: 'GR-610', name: '6/10', details: 'Product quality / size grade', status: 'Active' }, { code: 'GR-1015', name: '10/15', details: 'Product quality / size grade', status: 'Active' }, { code: 'GR-1020', name: '10/20', details: 'Product quality / size grade', status: 'Active' }, { code: 'GR-U2', name: 'U/2', details: 'Product quality / size grade', status: 'Active' }, { code: 'GR-U3', name: 'U/3', details: 'Product quality / size grade', status: 'Active' }],
+        packings: [{ code: 'PK-6X16', name: '6 × 1.6 Kg', details: '6 slabs/case · 1.6 kg/slab', status: 'Active', ref: '6x1.6', spc: 6, slab: 1.6, tare: .42 }, { code: 'PK-10X2', name: '10 × 2 Kg', details: '10 slabs/case · 2 kg/slab', status: 'Active', ref: '10x2', spc: 10, slab: 2, tare: .65 }, { code: 'PK-6X18', name: '6 × 1.8 Kg', details: '6 slabs/case · 1.8 kg/slab', status: 'Active', ref: '6x1.8', spc: 6, slab: 1.8, tare: .45 }, { code: 'PK-4X5', name: '4 × 5 Kg', details: '4 slabs/case · 5 kg/slab', status: 'Active', ref: '4x5', spc: 4, slab: 5, tare: .7 }, { code: 'PK-5X36', name: '5 × 3.6 Kg', details: '5 slabs/case · 3.6 kg/slab', status: 'Active', ref: '5x3.6', spc: 5, slab: 3.6, tare: .6 }],
+        locations: [{ code: 'LOC-A', name: 'Unit A', details: 'Receiving, production and dispatch plant', status: 'Active' }, { code: 'LOC-B', name: 'Unit B', details: 'Receiving, production and dispatch plant', status: 'Active' }],
+        suppliers: [{ code: 'SUP-001', name: 'Merlin Seafood', details: 'Raw material supplier', status: 'Active' }, { code: 'SUP-002', name: 'Oceanfresh Traders', details: 'Raw material supplier', status: 'Active' }, { code: 'SUP-003', name: 'Coastal Catch Co.', details: 'Raw material supplier', status: 'Active' }],
+        customers: [{ code: 'CUS-001', name: 'Malabar Exports', details: 'Export customer · Kochi', status: 'Active' }, { code: 'CUS-002', name: 'Blue Coast Foods', details: 'Domestic customer', status: 'Active' }, { code: 'CUS-003', name: 'Gulf Marine Trading', details: 'Export customer', status: 'Active' }]
+      };
+      var masterMeta = { products: { label: 'Products', singular: 'product', description: 'Finished goods produced, stocked, transferred, and sold.' }, rawMaterials: { label: 'Raw materials', singular: 'raw material', description: 'Purchased inputs consumed by production.' }, units: { label: 'Units of measure', singular: 'unit', description: 'Standard quantity units such as kg, slab, case, and number.' }, grades: { label: 'Grades', singular: 'grade', description: 'Size and quality grades applied to finished products.' }, packings: { label: 'Packing configurations', singular: 'packing', description: 'Case composition, slab weight, and tare used in stock calculations.' }, locations: { label: 'Plants & locations', singular: 'location', description: 'Receiving, production, storage, and dispatch sites.' }, suppliers: { label: 'Suppliers', singular: 'supplier', description: 'Approved vendors available on purchase receipts.' }, customers: { label: 'Customers', singular: 'customer', description: 'Parties available on sales and shipment entries.' } };
+      state.masterChanges = [];
+      var modules = ['purchases', 'production', 'transfers', 'shipments', 'reports', 'masters'];
+      function moduleAccess(view, create, edit, remove, approve) { return { view: !!view, create: create || 'none', edit: !!edit, delete: !!remove, approve: !!approve } }
+      var permissions = {
+        'Administrator': { description: 'Full system administration', dashboard: { view: true }, inventory: { view: true }, purchases: moduleAccess(true, 'direct', true, true, true), production: moduleAccess(true, 'direct', true, true, true), transfers: moduleAccess(true, 'direct', true, true, true), shipments: moduleAccess(true, 'direct', true, true, true), reports: { view: true, export: true }, masters: moduleAccess(true, 'direct', true, true, true), permissions: { manage: true } },
+        'Production Manager': { description: 'Submits and maintains production records', dashboard: { view: true }, inventory: { view: true }, purchases: moduleAccess(true, 'none', false, false, false), production: moduleAccess(true, 'approval', true, false, false), transfers: moduleAccess(false, 'none', false, false, false), shipments: moduleAccess(false, 'none', false, false, false), reports: { view: true, export: true }, masters: moduleAccess(true, 'none', false, false, false), permissions: { manage: false } },
+        'Store Operator': { description: 'Receives materials and moves approved stock', dashboard: { view: true }, inventory: { view: true }, purchases: moduleAccess(true, 'direct', true, false, false), production: moduleAccess(true, 'none', false, false, false), transfers: moduleAccess(true, 'approval', false, false, false), shipments: moduleAccess(false, 'none', false, false, false), reports: { view: false, export: false }, masters: moduleAccess(true, 'none', false, false, false), permissions: { manage: false } },
+        'Accounts Viewer': { description: 'Read-only access to records and reports', dashboard: { view: true }, inventory: { view: true }, purchases: moduleAccess(true, 'none', false, false, false), production: moduleAccess(true, 'none', false, false, false), transfers: moduleAccess(true, 'none', false, false, false), shipments: moduleAccess(true, 'none', false, false, false), reports: { view: true, export: true }, masters: moduleAccess(false, 'none', false, false, false), permissions: { manage: false } }
+      };
+      var team = [
+        { name: 'Demo Admin', initials: 'DA', role: 'Administrator' },
+        { name: 'Production Lead', initials: 'PL', role: 'Production Manager' },
+        { name: 'Store User', initials: 'SU', role: 'Store Operator' },
+        { name: 'Accounts User', initials: 'AU', role: 'Accounts Viewer' }
+      ];
+      var currentRole = 'Administrator', managedRole = 'Administrator', editTarget = null, deleteTarget = null, reportData = { headers: [], rows: [] }, selectedMaster = 'products', masterEditIndex = null;
+      var outSeq = 0;
+      function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] }) }
+      function money(v) { return '₹' + Number(v).toLocaleString('en-IN', { maximumFractionDigits: 2 }) }
+      function kg(v) { return Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' kg' }
+      function casesFor(item) { return Math.floor(item.slabs / packings[item.packing].spc) }
+      function looseFor(item) { return item.slabs % packings[item.packing].spc }
+      function itemName(item) { return item.product + ' · ' + item.grade + ' · ' + packings[item.packing].label }
+      function net(item) { return item.slabs * packings[item.packing].slab }
+      function gross(item) { return net(item) + casesFor(item) * packings[item.packing].tare }
+      function stockKey(item) { return item.product + '|' + item.grade + '|' + item.packing }
+      function findStock(location, key) { return state.stock.find(function (s) { return s.location === location && stockKey(s) === key }) }
+      function typeModule(type) { return type === 'batches' ? 'production' : type === 'masterChanges' ? 'masters' : type }
+      function can(module, action) { var role = permissions[currentRole], rule = role && role[module]; return !!(rule && rule[action] === true) }
+      function createPolicy(module) { var role = permissions[currentRole], rule = role && role[module]; return rule && rule.create ? rule.create : 'none' }
+      function actionButtons(type, index) { var module = typeModule(type), item = state[type][index], pending = item && item.status === 'Pending approval', html = ''; if (pending && can(module, 'approve')) html += '<button class="action-btn" data-action="approve" data-type="' + type + '" data-index="' + index + '" aria-label="Approve entry" title="Approve"><i data-lucide="check"></i></button><button class="action-btn danger" data-action="reject" data-type="' + type + '" data-index="' + index + '" aria-label="Reject entry" title="Reject"><i data-lucide="x"></i></button>'; if (!pending && can(module, 'edit')) html += '<button class="action-btn" data-action="edit" data-type="' + type + '" data-index="' + index + '" aria-label="Edit entry" title="Edit"><i data-lucide="pencil"></i></button>'; if (!pending && can(module, 'delete')) html += '<button class="action-btn danger" data-action="delete" data-type="' + type + '" data-index="' + index + '" aria-label="Delete entry" title="Delete"><i data-lucide="trash-2"></i></button>'; return html ? '<div class="row-actions">' + html + '</div>' : '<span class="view-only"><i data-lucide="lock"></i> View only</span>' }
+      function cardActions(type, index) { var module = typeModule(type), item = state[type][index], pending = item && item.status === 'Pending approval', html = ''; if (pending && can(module, 'approve')) html += '<button class="btn primary" data-action="approve" data-type="' + type + '" data-index="' + index + '"><i data-lucide="check"></i>Approve</button><button class="btn ghost" data-action="reject" data-type="' + type + '" data-index="' + index + '"><i data-lucide="x"></i>Reject</button>'; if (!pending && can(module, 'edit')) html += '<button class="btn secondary" data-action="edit" data-type="' + type + '" data-index="' + index + '"><i data-lucide="pencil"></i>Edit</button>'; if (!pending && can(module, 'delete')) html += '<button class="btn ghost" data-action="delete" data-type="' + type + '" data-index="' + index + '"><i data-lucide="trash-2"></i>Delete</button>'; return '<div class="card-actions">' + (html || '<span class="view-only"><i data-lucide="lock"></i> View only for ' + currentRole + '</span>') + '</div>' }
+      function iconRefresh() { if (window.lucide) lucide.createIcons() }
+      function toast(msg) { var t = document.getElementById('toast'); t.querySelector('span').textContent = msg; t.classList.add('show'); setTimeout(function () { t.classList.remove('show') }, 2600) }
+      function statCard(label, value, delta, icon) { return '<div class="stat"><div class="stat-icon"><i data-lucide="' + icon + '"></i></div><div class="label">' + label + '</div><div class="value">' + value + '</div><div class="delta">' + delta + '</div></div>' }
+      function renderDashboard() {
+        var totalNet = state.stock.reduce(function (a, s) { return a + net(s) }, 0), totalCases = state.stock.reduce(function (a, s) { return a + casesFor(s) }, 0), loose = state.stock.reduce(function (a, s) { return a + looseFor(s) }, 0), raw = Object.values(state.raw).reduce(function (a, r) { return a + r.received - r.consumed }, 0);
+        document.getElementById('dashboardStats').innerHTML = statCard('FINISHED NET WEIGHT', kg(totalNet), '<strong>' + state.stock.length + '</strong> stock combinations', 'scale') + statCard('COMPLETE CASES', totalCases.toLocaleString('en-IN'), loose + ' loose slabs retained', 'boxes') + statCard('RAW MATERIAL BALANCE', kg(raw), 'Across 2 receiving plants', 'warehouse') + statCard('ACTIVE MOVEMENTS', '2', '1 batch · 1 shipment', 'activity');
+        var max = Math.max.apply(null, ['Unit A', 'Unit B'].map(function (l) { return state.stock.filter(function (s) { return s.location === l }).reduce(function (a, s) { return a + net(s) }, 0) }));
+        document.getElementById('stockBars').innerHTML = ['Unit A', 'Unit B'].map(function (l) { var finished = state.stock.filter(function (s) { return s.location === l }).reduce(function (a, s) { return a + net(s) }, 0), rawbal = state.raw[l].received - state.raw[l].consumed; return '<div class="stock-row"><b>' + l + '</b><div><div class="bar"><i style="width:' + Math.max(6, finished / max * 100) + '%"></i></div><div class="bar" style="margin-top:5px"><i style="width:' + Math.max(6, rawbal / max * 100) + '%;background:#64b9cc"></i></div></div><span class="kg">' + kg(finished) + '</span></div>' }).join('');
+        document.getElementById('activityList').innerHTML = state.activity.slice(0, 4).map(function (a) { return '<li><div class="act-icon"><i data-lucide="' + a.icon + '"></i></div><div><b>' + a.title + '</b><p>' + a.detail + '</p></div><time>' + a.time + '</time></li>' }).join('');
+      }
+      function renderRaw() { document.getElementById('rawCards').innerHTML = Object.keys(state.raw).map(function (l) { var r = state.raw[l], bal = r.received - r.consumed, pct = Math.min(100, r.consumed / r.received * 100); return '<div class="raw-card"><div><h3>' + l + ' · Raw Squid</h3><p>' + kg(r.received) + ' received · ' + kg(r.consumed) + ' consumed</p></div><strong>' + kg(bal) + '</strong><div class="raw-progress"><i style="width:' + pct + '%"></i></div></div>' }).join('') }
+      function mobileCard(title, sub, items, badge, actions) { return '<div class="stock-card"><div class="stock-card-head"><div><div class="item-title">' + title + '</div><span class="item-sub">' + sub + '</span></div>' + (badge || '') + '</div><div class="stock-card-grid">' + items.map(function (x) { return '<div><span class="mini-label">' + x[0] + '</span><span class="mini-value">' + x[1] + '</span></div>' }).join('') + '</div>' + (actions || '') + '</div>' }
+      function renderPurchases() {
+        document.getElementById('purchaseRows').innerHTML = state.purchases.map(function (p, i) { return '<tr><td class="mono">' + p.id + '</td><td><span class="item-title">' + p.supplier + '</span><span class="item-sub">' + p.bill + '</span></td><td>' + p.location + '</td><td>' + p.material + '</td><td class="num">' + kg(p.qty) + '</td><td class="num">' + money(p.qty * p.rate) + '</td><td><span class="badge ' + (p.status === 'Pending approval' ? 'warn' : '') + '">' + p.status + '</span></td><td class="action-cell">' + actionButtons('purchases', i) + '</td></tr>' }).join('');
+        document.getElementById('purchaseCards').innerHTML = state.purchases.map(function (p, i) { return mobileCard(p.id, p.supplier + ' · ' + p.bill, [['Receiving plant', p.location], ['Quantity', kg(p.qty)], ['Material', p.material], ['Value', money(p.qty * p.rate)]], '<span class="badge ' + (p.status === 'Pending approval' ? 'warn' : '') + '">' + p.status + '</span>', cardActions('purchases', i)) }).join('')
+      }
+      function renderBatches() {
+        document.getElementById('productionRows').innerHTML = state.batches.map(function (b, i) { return '<tr><td><span class="item-title mono">' + b.id + '</span><span class="item-sub">' + b.desc + '</span></td><td>' + b.location + '<span class="item-sub">' + b.source + '</span></td><td class="num">' + kg(b.raw) + '</td><td class="num">' + kg(b.output) + '</td><td class="num">' + b.yield.toFixed(2) + '%</td><td><span class="badge ' + (b.status === 'In progress' || b.status === 'Pending approval' ? 'warn' : '') + '">' + b.status + '</span></td><td class="action-cell">' + actionButtons('batches', i) + '</td></tr>' }).join('');
+        document.getElementById('productionCards').innerHTML = state.batches.map(function (b, i) { return mobileCard(b.id, b.desc, [['Plant / source', b.location + ' · ' + b.source], ['Raw input', kg(b.raw)], ['Output', kg(b.output)], ['Yield', b.yield.toFixed(2) + '%']], '<span class="badge ' + (b.status === 'In progress' || b.status === 'Pending approval' ? 'warn' : '') + '">' + b.status + '</span>', cardActions('batches', i)) }).join('')
+      }
+      function renderStock() {
+        var q = (document.getElementById('stockSearch').value || '').toLowerCase(), loc = document.getElementById('locationFilter').value;
+        var list = state.stock.filter(function (s) { return (loc === 'All locations' || s.location === loc) && itemName(s).toLowerCase().indexOf(q) > -1 && s.slabs > 0 });
+        document.getElementById('stockRows').innerHTML = list.length ? list.map(function (s) { return '<tr><td><span class="badge blue">' + s.location + '</span></td><td><span class="item-title">' + s.product + '</span><span class="item-sub">Grade ' + s.grade + '</span></td><td>' + packings[s.packing].label + '</td><td class="num">' + casesFor(s) + '</td><td class="num">' + looseFor(s) + '</td><td class="num">' + s.slabs + '</td><td class="num">' + kg(net(s)) + '</td><td class="num">' + kg(gross(s)) + '</td></tr>' }).join('') : '<tr><td colspan="8" class="empty">No stock matches these filters.</td></tr>';
+        document.getElementById('stockCards').innerHTML = list.length ? list.map(function (s) { return mobileCard(s.product, 'Grade ' + s.grade + ' · ' + packings[s.packing].label, [['Complete cases', String(casesFor(s))], ['Loose slabs', String(looseFor(s))], ['Total slabs', String(s.slabs)], ['Net / gross', kg(net(s)) + ' / ' + kg(gross(s))]], '<span class="badge blue">' + s.location + '</span>') }).join('') : '<div class="empty">No stock matches these filters.</div>';
+        refreshItemSelects();
+      }
+      function renderTransfers() {
+        document.getElementById('transferRows').innerHTML = state.transfers.map(function (t, i) { return '<tr><td class="mono">' + t.id + '</td><td><span class="item-title">' + t.from + ' → ' + t.to + '</span></td><td>' + t.desc + '</td><td class="num">' + t.qty + '</td><td class="num">' + kg(t.weight) + '</td><td><span class="badge ' + (t.status === 'Pending approval' ? 'warn' : '') + '">' + t.status + '</span></td><td class="action-cell">' + actionButtons('transfers', i) + '</td></tr>' }).join('');
+        document.getElementById('transferCards').innerHTML = state.transfers.map(function (t, i) { return mobileCard(t.id, t.desc, [['Route', t.from + ' → ' + t.to], ['Quantity', t.qty], ['Net weight', kg(t.weight)]], '<span class="badge ' + (t.status === 'Pending approval' ? 'warn' : '') + '">' + t.status + '</span>', cardActions('transfers', i)) }).join('')
+      }
+      function renderShipments() {
+        document.getElementById('shipmentRows').innerHTML = state.shipments.map(function (s, i) { return '<tr><td class="mono">' + s.id + '</td><td><span class="item-title">' + s.customer + '</span><span class="item-sub">' + s.destination + '</span></td><td>' + s.location + '</td><td class="num">' + s.lines + '</td><td class="num">' + kg(s.weight) + '</td><td class="num">' + money(s.value) + '</td><td><span class="badge ' + (s.status === 'Loading' || s.status === 'Pending approval' ? 'warn' : '') + '">' + s.status + '</span></td><td class="action-cell">' + actionButtons('shipments', i) + '</td></tr>' }).join('');
+        document.getElementById('shipmentCards').innerHTML = state.shipments.map(function (s, i) { return mobileCard(s.id, s.customer + ' · ' + s.destination, [['Dispatch plant', s.location], ['Lines', String(s.lines)], ['Net weight', kg(s.weight)], ['Value', money(s.value)]], '<span class="badge ' + (s.status === 'Loading' || s.status === 'Pending approval' ? 'warn' : '') + '">' + s.status + '</span>', cardActions('shipments', i)) }).join('')
+      }
+      function renderReports() {
+        var type = document.getElementById('reportType').value, loc = document.getElementById('reportLocation').value, filteredStock = state.stock.filter(function (s) { return (loc === 'All locations' || s.location === loc) && s.slabs > 0 }), purchaseList = state.purchases.filter(function (x) { return loc === 'All locations' || x.location === loc }), batchList = state.batches.filter(function (x) { return loc === 'All locations' || x.location === loc }), transferList = state.transfers.filter(function (x) { return loc === 'All locations' || x.from === loc || x.to === loc }), shipmentList = state.shipments.filter(function (x) { return loc === 'All locations' || x.location === loc });
+        var totalStock = filteredStock.reduce(function (a, s) { return a + net(s) }, 0), purchaseValue = purchaseList.reduce(function (a, p) { return a + p.qty * p.rate }, 0), avgYield = batchList.length ? batchList.reduce(function (a, b) { return a + b.yield }, 0) / batchList.length : 0, shipmentValue = shipmentList.reduce(function (a, s) { return a + s.value }, 0);
+        document.getElementById('reportStats').innerHTML = '<div class="report-card"><span>FINISHED NET STOCK</span><strong>' + kg(totalStock) + '</strong><div class="report-meta">' + filteredStock.length + ' stock combinations</div></div><div class="report-card"><span>PURCHASE VALUE</span><strong>' + money(purchaseValue) + '</strong><div class="report-meta">' + purchaseList.length + ' receipts</div></div><div class="report-card"><span>AVERAGE YIELD</span><strong>' + avgYield.toFixed(2) + '%</strong><div class="report-meta">' + batchList.length + ' production batches</div></div><div class="report-card"><span>SHIPMENT VALUE</span><strong>' + money(shipmentValue) + '</strong><div class="report-meta">' + shipmentList.length + ' shipments</div></div>';
+        var title = '', headers = [], rows = [];
+        if (type === 'stock') { title = 'Stock position'; headers = ['Location', 'Product / grade', 'Packing', 'Cases', 'Loose slabs', 'Net weight']; rows = filteredStock.map(function (s) { return [s.location, s.product + ' · ' + s.grade, packings[s.packing].label, casesFor(s), looseFor(s), kg(net(s))] }) }
+        if (type === 'purchases') { title = 'Purchase summary'; headers = ['Receipt', 'Supplier', 'Plant', 'Quantity', 'Value', 'Status']; rows = purchaseList.map(function (p) { return [p.id, p.supplier, p.location, kg(p.qty), money(p.qty * p.rate), p.status] }) }
+        if (type === 'production') { title = 'Production yield'; headers = ['Batch', 'Plant', 'Source', 'Raw input', 'Output', 'Yield']; rows = batchList.map(function (b) { return [b.id, b.location, b.source, kg(b.raw), kg(b.output), b.yield.toFixed(2) + '%'] }) }
+        if (type === 'transfers') { title = 'Transfer log'; headers = ['Transfer', 'Route', 'Item', 'Quantity', 'Net weight', 'Status']; rows = transferList.map(function (t) { return [t.id, t.from + ' → ' + t.to, t.desc, t.qty, kg(t.weight), t.status] }) }
+        if (type === 'shipments') { title = 'Shipment sales'; headers = ['Shipment', 'Customer', 'Plant', 'Net weight', 'Value', 'Status']; rows = shipmentList.map(function (s) { return [s.id, s.customer, s.location, kg(s.weight), money(s.value), s.status] }) }
+        reportData = { headers: headers, rows: rows }; document.getElementById('reportTitle').textContent = title; document.getElementById('reportHead').innerHTML = '<tr>' + headers.map(function (h) { return '<th>' + h + '</th>' }).join('') + '</tr>'; document.getElementById('reportRows').innerHTML = rows.length ? rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + esc(c) + '</td>' }).join('') + '</tr>' }).join('') : '<tr><td colspan="' + headers.length + '" class="empty">No records for this location.</td></tr>'; document.getElementById('reportCards').innerHTML = rows.length ? rows.map(function (r) { return mobileCard(r[0], r[1], headers.slice(2).map(function (h, i) { return [h, r[i + 2]] }), '', '') }).join('') : '<div class="empty">No records for this location.</div>';
+      }
+      function activeNames(category) { return masterData[category].filter(function (x) { return x.status === 'Active' }).map(function (x) { return x.name }) }
+      function syncSelect(id, values) { var sel = document.getElementById(id); if (!sel) return; var old = sel.value; sel.innerHTML = values.map(function (v) { return '<option>' + esc(v) + '</option>' }).join(''); if (values.indexOf(old) > -1) sel.value = old }
+      function syncMasterSelects() { syncSelect('purchaseSupplier', activeNames('suppliers')); syncSelect('purchaseLocation', activeNames('locations')); syncSelect('purchaseMaterial', activeNames('rawMaterials')); syncSelect('prodLocation', activeNames('locations')); syncSelect('transferFrom', activeNames('locations')); syncSelect('transferTo', activeNames('locations')); syncSelect('shipLocation', activeNames('locations')); syncSelect('shipCustomer', activeNames('customers')) }
+      function masterInUse(category, r) { if (category === 'products') return state.stock.some(function (s) { return s.product === r.name }); if (category === 'rawMaterials') return state.purchases.some(function (x) { return x.material === r.name }); if (category === 'grades') return state.stock.some(function (s) { return s.grade === r.name }); if (category === 'packings') return state.stock.some(function (s) { return s.packing === r.ref }); if (category === 'locations') return state.stock.some(function (s) { return s.location === r.name }) || state.purchases.some(function (x) { return x.location === r.name }); if (category === 'suppliers') return state.purchases.some(function (x) { return x.supplier === r.name }); if (category === 'customers') return state.shipments.some(function (x) { return x.customer === r.name }); return false }
+      function renderMasters() {
+        var keys = Object.keys(masterMeta), meta = masterMeta[selectedMaster], q = (document.getElementById('masterSearch').value || '').toLowerCase(), status = document.getElementById('masterStatus').value, list = masterData[selectedMaster].map(function (r, i) { return { r: r, i: i } }).filter(function (x) { return (status === 'All statuses' || x.r.status === status) && (x.r.code + ' ' + x.r.name + ' ' + x.r.details).toLowerCase().indexOf(q) > -1 });
+        document.getElementById('masterSummary').innerHTML = '<div class="master-summary-card"><small>ITEM CATALOG</small><strong>' + (masterData.products.length + masterData.rawMaterials.length) + '</strong><p>Finished goods + raw materials</p></div><div class="master-summary-card"><small>QUALITY & PACKING</small><strong>' + (masterData.grades.length + masterData.packings.length + masterData.units.length) + '</strong><p>Grades, packing rules, and units</p></div><div class="master-summary-card"><small>PLANTS & LOCATIONS</small><strong>' + masterData.locations.length + '</strong><p>Operational stock points</p></div><div class="master-summary-card"><small>BUSINESS PARTIES</small><strong>' + (masterData.suppliers.length + masterData.customers.length) + '</strong><p>Suppliers + customers</p></div>';
+        document.getElementById('masterNav').innerHTML = keys.map(function (k) { return '<button class="' + (k === selectedMaster ? 'active' : '') + '" data-master-category="' + k + '"><span>' + masterMeta[k].label + '</span><span class="count">' + masterData[k].length + '</span></button>' }).join('');
+        document.getElementById('masterTitle').textContent = meta.label; document.getElementById('masterDescription').textContent = meta.description; document.getElementById('addCurrentMaster').innerHTML = '<i data-lucide="plus"></i>Add ' + meta.singular; document.getElementById('newMasterBtn').disabled = createPolicy('masters') === 'none'; document.getElementById('addCurrentMaster').disabled = createPolicy('masters') === 'none';
+        function acts(i) { return can('masters', 'edit') ? '<div class="row-actions"><button class="action-btn" data-master-edit="' + i + '" aria-label="Edit master record" title="Edit"><i data-lucide="pencil"></i></button></div>' : '<span class="view-only"><i data-lucide="lock"></i> View only</span>' }
+        document.getElementById('masterRows').innerHTML = list.length ? list.map(function (x) { return '<tr><td class="mono">' + esc(x.r.code) + '</td><td><span class="item-title">' + esc(x.r.name) + '</span><span class="item-sub">' + (masterInUse(selectedMaster, x.r) ? 'Used in transactions' : 'Not yet referenced') + '</span></td><td>' + esc(x.r.details) + '</td><td><span class="badge ' + (x.r.status === 'Inactive' ? 'warn' : '') + '">' + x.r.status + '</span></td><td class="action-cell">' + acts(x.i) + '</td></tr>' }).join('') : '<tr><td colspan="5" class="master-empty">No records match these filters.</td></tr>';
+        document.getElementById('masterCards').innerHTML = list.length ? list.map(function (x) { return mobileCard(x.r.name, x.r.code, [['Details', x.r.details], ['Usage', masterInUse(selectedMaster, x.r) ? 'Used in transactions' : 'Not yet referenced']], '<span class="badge ' + (x.r.status === 'Inactive' ? 'warn' : '') + '">' + x.r.status + '</span>', can('masters', 'edit') ? '<div class="card-actions"><button class="btn secondary" data-master-edit="' + x.i + '"><i data-lucide="pencil"></i>Edit</button></div>' : '') }).join('') : '<div class="master-empty">No records match these filters.</div>';
+        syncMasterSelects()
+      }
+      function moduleLabel(module) { return { purchases: 'Purchases', production: 'Production', transfers: 'Transfers', shipments: 'Shipments', reports: 'Reports', masters: 'Master data' }[module] || module }
+      function accessSummary(rule, module) { if (module === 'reports') return rule.view ? (rule.export ? 'View + export' : 'View only') : 'No access'; if (!rule.view) return 'No access'; if (rule.create === 'approval') return 'Submit for approval'; if (rule.create === 'direct') return 'Direct posting'; return 'View only' }
+      function pendingEntries() { var all = [];[['purchases', 'purchases'], ['batches', 'production'], ['transfers', 'transfers'], ['shipments', 'shipments'], ['masterChanges', 'masters']].forEach(function (pair) { state[pair[0]].forEach(function (item, index) { if (item.status === 'Pending approval') all.push({ type: pair[0], module: pair[1], index: index, item: item }) }) }); return all }
+      function renderPermissions() {
+        var roleNames = Object.keys(permissions), options = roleNames.map(function (r) { return '<option>' + esc(r) + '</option>' }).join('');
+        document.getElementById('rolePreview').innerHTML = roleNames.map(function (r) { return '<option' + (r === currentRole ? ' selected' : '') + '>' + esc(r) + '</option>' }).join('');
+        document.getElementById('managedRoleSelect').innerHTML = roleNames.map(function (r) { return '<option' + (r === managedRole ? ' selected' : '') + '>' + esc(r) + '</option>' }).join('');
+        document.getElementById('userRoleList').innerHTML = team.map(function (u, i) { return '<div class="role-card ' + (u.role === managedRole ? 'active' : '') + '"><div style="display:flex;align-items:center;gap:10px"><div class="avatar">' + u.initials + '</div><div><b>' + esc(u.name) + '</b><small>' + esc(u.role) + '</small></div></div><div class="role-card-actions"><select class="filter team-role" data-user-index="' + i + '" aria-label="Role for ' + esc(u.name) + '">' + roleNames.map(function (r) { return '<option' + (r === u.role ? ' selected' : '') + '>' + esc(r) + '</option>' }).join('') + '</select></div></div>' }).join('');
+        var p = permissions[managedRole], isAdmin = managedRole === 'Administrator'; document.getElementById('deleteRoleBtn').disabled = isAdmin; document.getElementById('roleSummary').innerHTML = '<span class="badge">' + esc(managedRole) + '</span><span class="role-description">' + esc(p.description || 'Custom operational role') + '</span>';
+        document.getElementById('permissionToggles').innerHTML = modules.map(function (module) { var rule = p[module], isReports = module === 'reports'; return '<div class="module-permission-card"><div class="module-permission-title"><span><b>' + moduleLabel(module) + '</b><small>' + accessSummary(rule, module) + '</small></span><label class="mini-toggle"><span>View</span><span class="switch"><input type="checkbox" data-module="' + module + '" data-permission="view" ' + (rule.view ? 'checked ' : '') + (isAdmin ? 'disabled' : '') + '><span></span></span></label></div><div class="module-permission-controls">' + (isReports ? '<label class="mini-toggle create-policy"><span>Export CSV</span><span class="switch"><input type="checkbox" data-module="reports" data-permission="export" ' + (rule.export ? 'checked ' : '') + (isAdmin ? 'disabled' : '') + '><span></span></span></label>' : '<div class="field create-policy"><label>Add entries</label><select class="permission-select" data-module="' + module + '" data-permission="create" ' + (isAdmin ? 'disabled' : '') + '><option value="none"' + (rule.create === 'none' ? ' selected' : '') + '>No access</option><option value="direct"' + (rule.create === 'direct' ? ' selected' : '') + '>Post directly</option><option value="approval"' + (rule.create === 'approval' ? ' selected' : '') + '>Needs admin approval</option></select></div><label class="mini-toggle"><span>Edit</span><span class="switch"><input type="checkbox" data-module="' + module + '" data-permission="edit" ' + (rule.edit ? 'checked ' : '') + (isAdmin ? 'disabled' : '') + '><span></span></span></label><label class="mini-toggle"><span>Delete</span><span class="switch"><input type="checkbox" data-module="' + module + '" data-permission="delete" ' + (rule.delete ? 'checked ' : '') + (isAdmin ? 'disabled' : '') + '><span></span></span></label><label class="mini-toggle"><span>Approve</span><span class="switch"><input type="checkbox" data-module="' + module + '" data-permission="approve" ' + (rule.approve ? 'checked ' : '') + (isAdmin ? 'disabled' : '') + '><span></span></span></label>') + '</div></div>' }).join('');
+        var pending = pendingEntries(); document.getElementById('approvalCount').textContent = pending.length + ' pending'; document.getElementById('approvalQueue').innerHTML = pending.length ? pending.map(function (x) { var details = x.module === 'production' ? kg(x.item.raw) + ' raw input · ' + x.item.location : x.module === 'purchases' ? kg(x.item.qty) + ' · ' + x.item.location : x.module === 'transfers' ? x.item.qty + ' · ' + x.item.from + ' → ' + x.item.to : x.module === 'masters' ? masterMeta[x.item.category].label + ' · ' + x.item.record.name : kg(x.item.weight) + ' · ' + x.item.location; return '<div class="approval-item"><div><b>' + esc(x.item.id) + ' · ' + moduleLabel(x.module) + '</b><p>' + esc(details) + ' · submitted by ' + esc(x.item.submittedBy || 'team member') + '</p></div><div class="approval-actions">' + (can(x.module, 'approve') ? '<button class="btn primary" data-action="approve" data-type="' + x.type + '" data-index="' + x.index + '"><i data-lucide="check"></i>Approve</button><button class="btn ghost" data-action="reject" data-type="' + x.type + '" data-index="' + x.index + '">Reject</button>' : '<span class="view-only">Approval permission required</span>') + '</div></div>' }).join('') : '<div class="empty">No entries are waiting for approval.</div>';
+        document.getElementById('accessRows').innerHTML = roleNames.map(function (r) { var role = permissions[r]; return '<tr><td><b>' + esc(r) + '</b><span class="item-sub">' + esc(role.description || 'Custom role') + '</span></td>' + modules.map(function (m) { return '<td><span class="badge ' + (role[m].create === 'approval' ? 'warn' : '') + '">' + esc(accessSummary(role[m], m)) + '</span></td>' }).join('') + '</tr>' }).join('');
+        document.getElementById('accessCards').innerHTML = roleNames.map(function (r) { var role = permissions[r]; return mobileCard(r, role.description || 'Custom role', modules.map(function (m) { return [moduleLabel(m), accessSummary(role[m], m)] }), role.permissions.manage ? '<span class="badge">Admin</span>' : '', '') }).join('');
+      }
+      function dialogModule(id) { return { purchaseDialog: 'purchases', productionDialog: 'production', transferDialog: 'transfers', shipmentDialog: 'shipments' }[id] }
+      function syncPermissionUI() { document.querySelectorAll('[data-open]').forEach(function (b) { var module = dialogModule(b.dataset.open); b.disabled = createPolicy(module) === 'none'; b.title = b.disabled ? 'Add permission required for ' + module : createPolicy(module) === 'approval' ? 'Submission will require approval' : '' }); document.querySelectorAll('.nav [data-view]').forEach(function (b) { var module = b.dataset.view; b.disabled = module === 'permissions' ? !can('permissions', 'manage') : !can(module, 'view') }); document.querySelector('.side-foot b').textContent = currentRole; document.querySelector('.side-foot small').textContent = currentRole === 'Administrator' ? 'All-location access' : 'Dynamic role access' }
+      function renderAll() { renderDashboard(); renderRaw(); renderPurchases(); renderBatches(); renderStock(); renderTransfers(); renderShipments(); renderReports(); renderMasters(); renderPermissions(); syncPermissionUI(); iconRefresh() }
+      function switchView(name) { var allowed = name === 'permissions' ? can('permissions', 'manage') : can(name, 'view'); if (!allowed) { toast(moduleLabel(name) + ' access is not enabled for ' + currentRole); return } document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active') }); document.getElementById('view-' + name).classList.add('active'); document.querySelectorAll('.nav button').forEach(function (b) { b.classList.toggle('active', b.dataset.view === name) }); document.getElementById('crumb').textContent = name === 'inventory' ? 'Stock' : name.charAt(0).toUpperCase() + name.slice(1); document.getElementById('sidebar').classList.remove('open'); document.getElementById('shade').classList.remove('open'); window.scrollTo(0, 0) }
+      document.addEventListener('click', function (e) { var v = e.target.closest('[data-view]'); if (v) switchView(v.dataset.view); var config = e.target.closest('[data-configure-role]'); if (config) { managedRole = config.dataset.configureRole; renderPermissions(); iconRefresh() } var o = e.target.closest('[data-open]'); if (o) { var module = dialogModule(o.dataset.open); if (createPolicy(module) === 'none') { toast('Add permission is not enabled for ' + moduleLabel(module)); return } var d = document.getElementById(o.dataset.open); if (d) { var submit = d.querySelector('[type="submit"]'), labels = { purchaseDialog: 'Confirm receipt', productionDialog: 'Complete & post stock', transferDialog: 'Confirm transfer', shipmentDialog: 'Confirm shipment' }; if (submit) submit.textContent = createPolicy(module) === 'approval' ? 'Submit for approval' : labels[d.id]; if (d.id === 'productionDialog' && document.getElementById('outputLines').children.length === 0) addOutputLine(); refreshItemSelects(); d.showModal(); updateAllCalcs() } } var a = e.target.closest('[data-action]'); if (a) { if (a.dataset.action === 'edit') openEdit(a.dataset.type, +a.dataset.index); if (a.dataset.action === 'delete') openDelete(a.dataset.type, +a.dataset.index); if (a.dataset.action === 'approve') reviewEntry(a.dataset.type, +a.dataset.index, true); if (a.dataset.action === 'reject') reviewEntry(a.dataset.type, +a.dataset.index, false) } var c = e.target.closest('[data-close]'); if (c) c.closest('dialog').close() });
+      function fieldText(name, label, value, type, extra) { return '<div class="field"><label>' + label + '</label><input aria-label="' + label + '" name="' + name + '" type="' + (type || 'text') + '" value="' + esc(value) + '" ' + (extra || '') + ' required></div>' }
+      function fieldSelect(name, label, value, options) { return '<div class="field"><label>' + label + '</label><select aria-label="' + label + '" name="' + name + '">' + options.map(function (x) { return '<option' + (x === value ? ' selected' : '') + '>' + x + '</option>' }).join('') + '</select></div>' }
+      function statusField(item, options) { return item.status === 'Pending approval' ? fieldText('status', 'Status', item.status, 'text', 'readonly') : fieldSelect('status', 'Status', item.status, options) }
+      function openEdit(type, index) {
+        if (!can(typeModule(type), 'edit')) { toast('Edit permission is not enabled for ' + moduleLabel(typeModule(type))); return } var item = state[type][index]; if (!item) return; editTarget = { type: type, index: index }; var fields = '', label = item.id;
+        if (type === 'purchases') fields = fieldText('supplier', 'Supplier', item.supplier) + fieldText('bill', 'Supplier bill no.', item.bill) + fieldSelect('location', 'Receiving plant', item.location, ['Unit A', 'Unit B']) + fieldText('material', 'Raw material', item.material) + fieldText('qty', 'Quantity (kg)', item.qty, 'number', 'min="0" step="0.01"') + fieldText('rate', 'Rate (₹ / kg)', item.rate, 'number', 'min="0" step="0.01"') + statusField(item, ['Confirmed', 'Pending', 'Cancelled']);
+        if (type === 'batches') fields = fieldSelect('location', 'Production plant', item.location, ['Unit A', 'Unit B']) + fieldText('source', 'Source receipt', item.source) + fieldText('raw', 'Raw input (kg)', item.raw, 'number', 'min="0" step="0.01"') + fieldText('output', 'Finished output (kg)', item.output, 'number', 'min="0" step="0.01"') + statusField(item, ['In progress', 'Completed', 'On hold']);
+        if (type === 'transfers') fields = fieldSelect('from', 'From plant', item.from, ['Unit A', 'Unit B']) + fieldSelect('to', 'To plant', item.to, ['Unit A', 'Unit B']) + fieldText('desc', 'Item', item.desc) + fieldText('qty', 'Quantity', item.qty) + fieldText('weight', 'Net weight (kg)', item.weight, 'number', 'min="0" step="0.01"') + statusField(item, ['Draft', 'In transit', 'Received']);
+        if (type === 'shipments') fields = fieldText('customer', 'Customer', item.customer) + fieldText('destination', 'Destination', item.destination) + fieldSelect('location', 'Dispatch plant', item.location, ['Unit A', 'Unit B']) + fieldText('lines', 'Lines', item.lines, 'number', 'min="1" step="1"') + fieldText('weight', 'Net weight (kg)', item.weight, 'number', 'min="0" step="0.01"') + fieldText('value', 'Value (₹)', item.value, 'number', 'min="0" step="0.01"') + statusField(item, ['Draft', 'Loading', 'Confirmed', 'Dispatched']);
+        document.getElementById('editDialogTitle').textContent = 'Edit ' + label; document.getElementById('editFields').innerHTML = fields; document.getElementById('editDialog').showModal(); iconRefresh()
+      }
+      function openDelete(type, index) { if (!can(typeModule(type), 'delete')) { toast('Delete permission is not enabled for ' + moduleLabel(typeModule(type))); return } var item = state[type][index]; if (!item) return; deleteTarget = { type: type, index: index }; document.getElementById('deleteMessage').textContent = 'Delete ' + item.id + '? This cannot be undone within the current demo session.'; document.getElementById('deleteDialog').showModal(); iconRefresh() }
+      document.getElementById('editForm').onsubmit = function (e) {
+        e.preventDefault(); if (!editTarget || !can(typeModule(editTarget.type), 'edit')) { toast('Edit permission required'); return } var item = state[editTarget.type][editTarget.index], f = new FormData(e.target); if (!item) return;
+        if (editTarget.type === 'purchases') { item.supplier = f.get('supplier'); item.bill = f.get('bill'); item.location = f.get('location'); item.material = f.get('material'); item.qty = +f.get('qty'); item.rate = +f.get('rate'); item.status = f.get('status') }
+        if (editTarget.type === 'batches') { item.location = f.get('location'); item.source = f.get('source'); item.raw = +f.get('raw'); item.output = +f.get('output'); item.yield = item.raw ? item.output / item.raw * 100 : 0; item.status = f.get('status') }
+        if (editTarget.type === 'transfers') { item.from = f.get('from'); item.to = f.get('to'); item.desc = f.get('desc'); item.qty = f.get('qty'); item.weight = +f.get('weight'); item.status = f.get('status') }
+        if (editTarget.type === 'shipments') { item.customer = f.get('customer'); item.destination = f.get('destination'); item.location = f.get('location'); item.lines = +f.get('lines'); item.weight = +f.get('weight'); item.value = +f.get('value'); item.status = f.get('status') }
+        state.activity.unshift({ icon: 'pencil', title: item.id + ' updated', detail: 'Edited by ' + currentRole, time: 'Now' }); document.getElementById('editDialog').close(); renderAll(); toast(item.id + ' updated')
+      };
+      document.getElementById('confirmDelete').onclick = function () { if (!deleteTarget || !can(typeModule(deleteTarget.type), 'delete')) { toast('Delete permission required'); return } var item = state[deleteTarget.type][deleteTarget.index]; if (!item) return; var id = item.id; state[deleteTarget.type].splice(deleteTarget.index, 1); state.activity.unshift({ icon: 'trash-2', title: id + ' deleted', detail: 'Deleted by ' + currentRole, time: 'Now' }); document.getElementById('deleteDialog').close(); deleteTarget = null; renderAll(); toast(id + ' deleted') };
+      function reviewEntry(type, index, approved) {
+        var module = typeModule(type), item = state[type][index]; if (!item || item.status !== 'Pending approval' || !can(module, 'approve')) { toast('Approval permission is required'); return } if (!approved) { item.status = 'Rejected'; state.activity.unshift({ icon: 'x', title: item.id + ' rejected', detail: 'Reviewed by ' + currentRole, time: 'Now' }); renderAll(); toast(item.id + ' rejected'); return } if (type === 'purchases') { state.raw[item.location].received += item.qty; item.status = 'Confirmed' }
+        if (type === 'batches') { var available = state.raw[item.location].received - state.raw[item.location].consumed; if (item.raw > available) { toast('Approval blocked: not enough raw stock at ' + item.location); return } (item.pendingLines || []).forEach(function (l) { var found = findStock(item.location, stockKey(l)); if (found) found.slabs += l.slabs; else state.stock.push({ location: item.location, product: l.product, grade: l.grade, packing: l.packing, slabs: l.slabs }) }); state.raw[item.location].consumed += item.raw; item.pendingLines = null; item.status = 'Completed' }
+        if (type === 'transfers') { var source = findStock(item.from, item.pendingKey); if (!source || item.pendingSlabs > source.slabs) { toast('Approval blocked: transfer stock is no longer available'); return } source.slabs -= item.pendingSlabs; var destination = findStock(item.to, item.pendingKey); if (destination) destination.slabs += item.pendingSlabs; else state.stock.push({ location: item.to, product: source.product, grade: source.grade, packing: source.packing, slabs: item.pendingSlabs }); item.status = 'Received' }
+        if (type === 'shipments') { var stock = findStock(item.location, item.pendingKey); if (!stock || item.pendingSlabs > stock.slabs) { toast('Approval blocked: shipment stock is no longer available'); return } stock.slabs -= item.pendingSlabs; item.status = 'Confirmed' }
+        if (type === 'masterChanges') { masterData[item.category].push(item.record); if (item.category === 'packings') packings[item.record.ref] = { label: item.record.name, spc: item.record.spc, slab: item.record.slab, tare: item.record.tare }; if (item.category === 'locations' && !state.raw[item.record.name]) state.raw[item.record.name] = { received: 0, consumed: 0 }; item.status = 'Approved' }
+        state.activity.unshift({ icon: 'check', title: item.id + ' approved', detail: 'Approved and posted by ' + currentRole, time: 'Now' }); renderAll(); toast(item.id + ' approved and posted')
+      }
+      document.getElementById('rolePreview').onchange = function () { currentRole = this.value; var active = document.querySelector('.view.active').id.replace('view-', ''), allowed = active === 'permissions' ? can('permissions', 'manage') : can(active, 'view'); if (!allowed) switchView('dashboard'); renderAll(); toast('Previewing as ' + currentRole) };
+      document.getElementById('managedRoleSelect').onchange = function () { managedRole = this.value; renderPermissions(); iconRefresh() };
+      document.getElementById('permissionToggles').onchange = function (e) { var input = e.target.closest('[data-permission]'); if (!input || !can('permissions', 'manage') || managedRole === 'Administrator') return; var module = input.dataset.module, key = input.dataset.permission, value = input.tagName === 'SELECT' ? input.value : input.checked; permissions[managedRole][module][key] = value; if (key === 'view' && !value) { if (module === 'reports') permissions[managedRole][module].export = false; else { permissions[managedRole][module].create = 'none'; permissions[managedRole][module].edit = false; permissions[managedRole][module].delete = false; permissions[managedRole][module].approve = false } } else if (key !== 'view' && value !== false && value !== 'none' && permissions[managedRole][module].view === false) permissions[managedRole][module].view = true; renderAll(); toast(managedRole + ' · ' + moduleLabel(module) + ' updated') };
+      document.getElementById('userRoleList').onchange = function (e) { var sel = e.target.closest('.team-role'); if (!sel || !can('permissions', 'manage')) return; team[+sel.dataset.userIndex].role = sel.value; renderPermissions(); iconRefresh(); toast('Team role updated') };
+      document.getElementById('newRoleBtn').onclick = function () { document.getElementById('roleForm').reset(); document.getElementById('roleDialog').showModal() };
+      document.getElementById('roleForm').onsubmit = function (e) { e.preventDefault(); if (!can('permissions', 'manage')) return; var f = new FormData(e.target), name = String(f.get('name')).trim(), description = String(f.get('description')).trim(); if (permissions[name]) { toast('A role with this name already exists'); return } permissions[name] = { description: description, dashboard: { view: true }, inventory: { view: true }, purchases: moduleAccess(false, 'none', false, false, false), production: moduleAccess(false, 'none', false, false, false), transfers: moduleAccess(false, 'none', false, false, false), shipments: moduleAccess(false, 'none', false, false, false), reports: { view: false, export: false }, masters: moduleAccess(false, 'none', false, false, false), permissions: { manage: false } }; managedRole = name; document.getElementById('roleDialog').close(); renderAll(); toast(name + ' created — configure module access') };
+      document.getElementById('deleteRoleBtn').onclick = function () { if (managedRole === 'Administrator') { toast('The Administrator role is required'); return } if (team.some(function (u) { return u.role === managedRole })) { toast('Reassign team members before deleting this role'); return } delete permissions[managedRole]; managedRole = 'Administrator'; renderAll(); toast('Role deleted') };
+      function togglePackingFields() { document.getElementById('packingFields').classList.toggle('show', document.getElementById('masterCategory').value === 'packings') }
+      function openMasterDialog(index) { if (index == null && createPolicy('masters') === 'none') { toast('Add permission is not enabled for Master data'); return } if (index != null && !can('masters', 'edit')) { toast('Edit permission is not enabled for Master data'); return } masterEditIndex = index == null ? null : index; var form = document.getElementById('masterForm'), category = document.getElementById('masterCategory'), keys = Object.keys(masterMeta); category.innerHTML = keys.map(function (k) { return '<option value="' + k + '">' + masterMeta[k].label + '</option>' }).join(''); category.value = selectedMaster; category.disabled = index != null; form.reset(); category.value = selectedMaster; category.disabled = index != null; var record = index == null ? null : masterData[selectedMaster][index]; document.getElementById('masterDialogTitle').textContent = (record ? 'Edit ' : 'Add ') + masterMeta[selectedMaster].singular; document.getElementById('masterDialogSubtitle').textContent = masterMeta[selectedMaster].description; document.getElementById('deleteMasterBtn').style.display = record && can('masters', 'delete') ? 'inline-flex' : 'none'; if (record) { form.elements.code.value = record.code; form.elements.name.value = record.name; form.elements.details.value = record.details; form.elements.status.value = record.status; if (selectedMaster === 'packings') { form.elements.spc.value = record.spc; form.elements.slab.value = record.slab; form.elements.tare.value = record.tare } } togglePackingFields(); document.getElementById('masterDialog').showModal(); iconRefresh() }
+      function renameMasterReferences(category, oldName, newName) { if (oldName === newName) return; if (category === 'products') state.stock.forEach(function (x) { if (x.product === oldName) x.product = newName }); if (category === 'grades') state.stock.forEach(function (x) { if (x.grade === oldName) x.grade = newName }); if (category === 'rawMaterials') state.purchases.forEach(function (x) { if (x.material === oldName) x.material = newName }); if (category === 'suppliers') state.purchases.forEach(function (x) { if (x.supplier === oldName) x.supplier = newName }); if (category === 'customers') state.shipments.forEach(function (x) { if (x.customer === oldName) x.customer = newName }); if (category === 'locations') { state.raw[newName] = state.raw[oldName] || { received: 0, consumed: 0 }; delete state.raw[oldName]; state.stock.forEach(function (x) { if (x.location === oldName) x.location = newName }); state.purchases.forEach(function (x) { if (x.location === oldName) x.location = newName }); state.batches.forEach(function (x) { if (x.location === oldName) x.location = newName }); state.transfers.forEach(function (x) { if (x.from === oldName) x.from = newName; if (x.to === oldName) x.to = newName }); state.shipments.forEach(function (x) { if (x.location === oldName) x.location = newName }) } }
+      document.getElementById('masterNav').onclick = function (e) { var b = e.target.closest('[data-master-category]'); if (!b) return; selectedMaster = b.dataset.masterCategory; document.getElementById('masterSearch').value = ''; document.getElementById('masterStatus').value = 'All statuses'; renderMasters(); iconRefresh() };
+      document.getElementById('newMasterBtn').onclick = function () { openMasterDialog(null) }; document.getElementById('addCurrentMaster').onclick = function () { openMasterDialog(null) }; document.getElementById('masterSearch').oninput = renderMasters; document.getElementById('masterStatus').onchange = renderMasters; document.getElementById('masterCategory').onchange = function () { document.getElementById('masterDialogSubtitle').textContent = masterMeta[this.value].description; togglePackingFields() };
+      document.addEventListener('click', function (e) { var b = e.target.closest('[data-master-edit]'); if (b) openMasterDialog(+b.dataset.masterEdit) });
+      document.getElementById('masterForm').onsubmit = function (e) {
+        e.preventDefault(); var form = e.target, category = form.elements.category.value, index = masterEditIndex, existing = index == null ? null : masterData[category][index]; if (index == null && createPolicy('masters') === 'none') { toast('Add permission is not enabled for Master data'); return } if (existing && !can('masters', 'edit')) { toast('Edit permission is not enabled for Master data'); return } var code = String(form.elements.code.value).trim(), name = String(form.elements.name.value).trim(); if (masterData[category].some(function (x, i) { return i !== index && x.code.toLowerCase() === code.toLowerCase() })) { toast('Code ' + code + ' already exists in ' + masterMeta[category].label); return } var record = { code: code, name: name, details: String(form.elements.details.value).trim(), status: form.elements.status.value }; if (category === 'packings') { record.ref = existing ? existing.ref : 'custom-' + Date.now(); record.spc = +form.elements.spc.value; record.slab = +form.elements.slab.value; record.tare = +form.elements.tare.value; if (!record.spc || !record.slab) { toast('Enter a valid case and slab configuration'); return } }
+        if (existing) { renameMasterReferences(category, existing.name, record.name); masterData[category][index] = record; if (category === 'packings') packings[record.ref] = { label: record.name, spc: record.spc, slab: record.slab, tare: record.tare }; state.activity.unshift({ icon: 'database', title: record.code + ' updated', detail: masterMeta[category].singular + ' master edited by ' + currentRole, time: 'Now' }); toast(record.name + ' updated') } else if (createPolicy('masters') === 'approval') { var change = { id: 'MD-' + String(state.masterChanges.length + 1).padStart(3, '0'), category: category, record: record, status: 'Pending approval', submittedBy: currentRole }; state.masterChanges.unshift(change); state.activity.unshift({ icon: 'database', title: change.id + ' submitted', detail: record.name + ' waiting for approval', time: 'Now' }); toast(record.name + ' submitted for approval') } else { masterData[category].push(record); if (category === 'packings') packings[record.ref] = { label: record.name, spc: record.spc, slab: record.slab, tare: record.tare }; if (category === 'locations' && !state.raw[record.name]) state.raw[record.name] = { received: 0, consumed: 0 }; state.activity.unshift({ icon: 'database', title: record.code + ' created', detail: masterMeta[category].singular + ' master added by ' + currentRole, time: 'Now' }); toast(record.name + ' added') }
+        selectedMaster = category; document.getElementById('masterDialog').close(); renderAll()
+      };
+      document.getElementById('deleteMasterBtn').onclick = function () { if (masterEditIndex == null || !can('masters', 'delete')) return; var record = masterData[selectedMaster][masterEditIndex]; if (masterInUse(selectedMaster, record)) { toast('This record is in use. Set it to Inactive instead.'); return } masterData[selectedMaster].splice(masterEditIndex, 1); if (selectedMaster === 'packings') delete packings[record.ref]; document.getElementById('masterDialog').close(); state.activity.unshift({ icon: 'trash-2', title: record.code + ' deleted', detail: 'Unused ' + masterMeta[selectedMaster].singular + ' removed', time: 'Now' }); renderAll(); toast(record.name + ' deleted') };
+      document.getElementById('reportType').onchange = renderReports; document.getElementById('reportLocation').onchange = renderReports;
+      document.getElementById('exportReport').onclick = function () { if (!can('reports', 'export')) { toast('Report export is not enabled for ' + currentRole); return } var csv = [reportData.headers].concat(reportData.rows).map(function (row) { return row.map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"' }).join(',') }).join('\n'), blob = new Blob([csv], { type: 'text/csv;charset=utf-8' }), a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = document.getElementById('reportType').value + '-report-2026-09-24.csv'; a.click(); setTimeout(function () { URL.revokeObjectURL(a.href) }, 1000); toast('CSV report downloaded') };
+      document.getElementById('menuBtn').onclick = function () { document.getElementById('sidebar').classList.add('open'); document.getElementById('shade').classList.add('open') }; document.getElementById('shade').onclick = function () { this.classList.remove('open'); document.getElementById('sidebar').classList.remove('open') };
+      document.getElementById('stockSearch').oninput = renderStock; document.getElementById('locationFilter').onchange = renderStock;
+      document.getElementById('purchaseForm').onsubmit = function (e) { e.preventDefault(); var policy = createPolicy('purchases'); if (policy === 'none') { toast('Add purchase permission required'); return } var f = new FormData(e.target), qty = +f.get('qty'), rate = +f.get('rate'), loc = f.get('location'), id = 'PR-0924-' + String(19 + state.purchases.length - 2).padStart(3, '0'), pending = policy === 'approval'; state.purchases.unshift({ id: id, supplier: f.get('supplier'), bill: f.get('bill'), location: loc, material: f.get('material'), qty: qty, rate: rate, status: pending ? 'Pending approval' : 'Confirmed', submittedBy: currentRole }); if (!pending) state.raw[loc].received += qty; state.activity.unshift({ icon: 'shopping-cart', title: id + (pending ? ' submitted' : ' confirmed'), detail: pending ? 'Waiting for administrator approval' : kg(qty) + ' received at ' + loc, time: 'Now' }); e.target.closest('dialog').close(); renderAll(); toast(pending ? id + ' submitted for approval' : id + ' added to ' + loc + ' raw stock') };
+      function outputTemplate() { outSeq++; var products = masterData.products.filter(function (x) { return x.status === 'Active' }).map(function (x) { return '<option>' + esc(x.name) + '</option>' }).join(''), grades = masterData.grades.filter(function (x) { return x.status === 'Active' }).map(function (x) { return '<option>' + esc(x.name) + '</option>' }).join(''), packingOptions = masterData.packings.filter(function (x) { return x.status === 'Active' }).map(function (x) { return '<option value="' + esc(x.ref) + '">' + esc(x.name) + '</option>' }).join(''); return '<div class="output-line" data-output><div class="field"><label>Product</label><select name="product">' + products + '</select></div><div class="field"><label>Grade</label><select name="grade">' + grades + '</select></div><div class="field"><label>Packing</label><select name="packing">' + packingOptions + '</select></div><div class="field"><label>Slabs</label><input name="slabs" type="number" min="1" step="1" value="' + (outSeq === 1 ? '415' : '60') + '"></div><button type="button" class="remove-line" aria-label="Remove output line"><i data-lucide="trash-2"></i></button></div>' }
+      function addOutputLine() { document.getElementById('outputLines').insertAdjacentHTML('beforeend', outputTemplate()); iconRefresh(); updateProductionCalc() }
+      document.getElementById('addOutput').onclick = addOutputLine; document.getElementById('outputLines').addEventListener('click', function (e) { var b = e.target.closest('.remove-line'); if (b && document.querySelectorAll('[data-output]').length > 1) { b.closest('[data-output]').remove(); updateProductionCalc() } }); document.getElementById('productionForm').addEventListener('input', updateProductionCalc); document.getElementById('productionForm').addEventListener('change', updateProductionCalc);
+      function productionLines() { return Array.from(document.querySelectorAll('[data-output]')).map(function (r) { return { product: r.querySelector('[name=product]').value, grade: r.querySelector('[name=grade]').value, packing: r.querySelector('[name=packing]').value, slabs: +r.querySelector('[name=slabs]').value || 0 } }) }
+      function updateProductionCalc() { var lines = productionLines(), netw = lines.reduce(function (a, l) { return a + l.slabs * packings[l.packing].slab }, 0), cases = lines.reduce(function (a, l) { return a + Math.floor(l.slabs / packings[l.packing].spc) }, 0), loose = lines.reduce(function (a, l) { return a + l.slabs % packings[l.packing].spc }, 0), raw = +document.getElementById('prodRaw').value || 0, tare = +document.getElementById('prodTare').value || 0, gain = +document.getElementById('prodGain').value || 0, yieldPct = raw ? netw / raw * 100 : 0; document.getElementById('productionCalc').innerHTML = '<div><span>COMPLETE CASES</span><strong>' + cases + '</strong></div><div><span>LOOSE SLABS</span><strong>' + loose + '</strong></div><div><span>NET / GROSS</span><strong>' + kg(netw) + ' / ' + kg(netw + tare) + '</strong></div><div><span>YIELD</span><strong>' + yieldPct.toFixed(2) + '%</strong></div>'; var expected = raw + gain, w = document.getElementById('productionWarning'); w.textContent = 'Recorded net output differs from raw input + process gain/loss by ' + kg(Math.abs(netw - expected)) + '. Review before completion.'; w.classList.toggle('show', Math.abs(netw - expected) > 1) }
+      document.getElementById('productionForm').onsubmit = function (e) { e.preventDefault(); var policy = createPolicy('production'); if (policy === 'none') { toast('Add production permission required'); return } var f = new FormData(e.target), loc = f.get('location'), raw = +f.get('raw'), available = state.raw[loc].received - state.raw[loc].consumed; if (raw > available) { toast('Not enough raw stock at ' + loc); return } var lines = productionLines().filter(function (l) { return l.slabs > 0 }); if (!lines.length) { toast('Add at least one output line'); return } var netw = lines.reduce(function (a, l) { return a + l.slabs * packings[l.packing].slab }, 0), pending = policy === 'approval', id = 'PB-0924-' + String(13 + state.batches.length - 2).padStart(3, '0'); if (!pending) { lines.forEach(function (l) { var found = findStock(loc, stockKey(l)); if (found) found.slabs += l.slabs; else state.stock.push({ location: loc, product: l.product, grade: l.grade, packing: l.packing, slabs: l.slabs }) }); state.raw[loc].consumed += raw } state.batches.unshift({ id: id, location: loc, source: f.get('purchase').split(' · ')[0], raw: raw, output: netw, yield: raw ? netw / raw * 100 : 0, status: pending ? 'Pending approval' : 'Completed', desc: lines.length + ' finished output line' + (lines.length > 1 ? 's' : ''), submittedBy: currentRole, pendingLines: pending ? lines : null }); var lead = lines[0], p = packings[lead.packing]; state.activity.unshift({ icon: 'factory', title: id + (pending ? ' submitted' : ' completed'), detail: pending ? 'Waiting for administrator approval' : lead.slabs + ' slabs → ' + Math.floor(lead.slabs / p.spc) + ' cases + ' + (lead.slabs % p.spc) + ' loose', time: 'Now' }); e.target.closest('dialog').close(); renderAll(); toast(pending ? id + ' submitted for approval' : id + ' posted to ' + loc + ' finished stock') };
+      function refreshItemSelects() { ['transfer', 'ship'].forEach(function (prefix) { var loc = document.getElementById(prefix === 'transfer' ? 'transferFrom' : 'shipLocation').value, sel = document.getElementById(prefix === 'transfer' ? 'transferItem' : 'shipItem'), old = sel.value; sel.innerHTML = state.stock.filter(function (s) { return s.location === loc && s.slabs > 0 }).map(function (s) { return '<option value="' + stockKey(s) + '">' + itemName(s) + ' · ' + casesFor(s) + ' cases + ' + looseFor(s) + ' loose</option>' }).join(''); if (Array.from(sel.options).some(function (o) { return o.value === old })) sel.value = old }) }
+      function transferCalc() { var from = document.getElementById('transferFrom').value, key = document.getElementById('transferItem').value, s = findStock(from, key), c = +document.getElementById('transferCases').value || 0, l = +document.getElementById('transferLoose').value || 0, box = document.getElementById('transferCalc'), w = document.getElementById('transferWarning'); if (!s) { box.innerHTML = '<div><span>AVAILABLE</span><strong>No stock item</strong></div>'; return } var p = packings[s.packing], slabs = c * p.spc + l, weight = slabs * p.slab; box.innerHTML = '<div><span>AVAILABLE</span><strong>' + casesFor(s) + ' cases + ' + looseFor(s) + ' loose</strong></div><div><span>MOVE SLABS</span><strong>' + slabs + '</strong></div><div><span>NET WEIGHT</span><strong>' + kg(weight) + '</strong></div><div><span>DESTINATION</span><strong>' + document.getElementById('transferTo').value + '</strong></div>'; w.textContent = 'Requested quantity exceeds available stock at ' + from + '.'; w.classList.toggle('show', slabs > s.slabs) }
+      function shipmentCalc() { var loc = document.getElementById('shipLocation').value, key = document.getElementById('shipItem').value, s = findStock(loc, key), c = +document.getElementById('shipCases').value || 0, l = +document.getElementById('shipLoose').value || 0, rate = +document.getElementById('shipRate').value || 0, box = document.getElementById('shipmentCalc'), w = document.getElementById('shipmentWarning'); if (!s) { box.innerHTML = '<div><span>AVAILABLE</span><strong>No stock item</strong></div>'; return } var p = packings[s.packing], slabs = c * p.spc + l, weight = slabs * p.slab; box.innerHTML = '<div><span>AVAILABLE</span><strong>' + casesFor(s) + ' cases + ' + looseFor(s) + ' loose</strong></div><div><span>SHIP SLABS</span><strong>' + slabs + '</strong></div><div><span>NET WEIGHT</span><strong>' + kg(weight) + '</strong></div><div><span>LINE VALUE</span><strong>' + money(weight * rate) + '</strong></div>'; w.textContent = 'Requested quantity exceeds available stock at ' + loc + '.'; w.classList.toggle('show', slabs > s.slabs) }
+      function updateAllCalcs() { updateProductionCalc(); transferCalc(); shipmentCalc() }
+      ['transferFrom', 'transferTo', 'transferItem', 'transferCases', 'transferLoose'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { if (id === 'transferFrom') refreshItemSelects(); transferCalc() }); document.getElementById(id).addEventListener('change', function () { if (id === 'transferFrom') refreshItemSelects(); transferCalc() }) });
+      ['shipLocation', 'shipItem', 'shipCases', 'shipLoose', 'shipRate'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { if (id === 'shipLocation') refreshItemSelects(); shipmentCalc() }); document.getElementById(id).addEventListener('change', function () { if (id === 'shipLocation') refreshItemSelects(); shipmentCalc() }) });
+      document.getElementById('transferForm').onsubmit = function (e) { e.preventDefault(); var policy = createPolicy('transfers'); if (policy === 'none') { toast('Add transfer permission required'); return } var f = new FormData(e.target), from = f.get('from'), to = f.get('to'); if (from === to) { toast('Choose a different destination plant'); return } var s = findStock(from, f.get('item')); if (!s) { toast('Select an available stock item'); return } var slabs = (+f.get('cases') || 0) * packings[s.packing].spc + (+f.get('loose') || 0); if (slabs <= 0 || slabs > s.slabs) { toast('Transfer quantity is not available'); return } var pending = policy === 'approval'; if (!pending) { s.slabs -= slabs; var d = findStock(to, stockKey(s)); if (d) d.slabs += slabs; else state.stock.push({ location: to, product: s.product, grade: s.grade, packing: s.packing, slabs: slabs }) } var id = 'TR-0924-' + String(5 + state.transfers.length - 1).padStart(3, '0'), weight = slabs * packings[s.packing].slab; state.transfers.unshift({ id: id, from: from, to: to, desc: itemName(s), qty: (+f.get('cases') || 0) + ' cases' + ((+f.get('loose') || 0) ? ' + ' + f.get('loose') + ' loose' : ''), weight: weight, status: pending ? 'Pending approval' : 'Received', submittedBy: currentRole, pendingKey: stockKey(s), pendingSlabs: slabs }); state.activity.unshift({ icon: 'arrow-left-right', title: id + (pending ? ' submitted' : ' received'), detail: pending ? 'Waiting for administrator approval' : slabs + ' slabs moved ' + from + ' → ' + to, time: 'Now' }); e.target.closest('dialog').close(); renderAll(); toast(pending ? id + ' submitted for approval' : id + ' adjusted both plant balances') };
+      document.getElementById('shipmentForm').onsubmit = function (e) { e.preventDefault(); var policy = createPolicy('shipments'); if (policy === 'none') { toast('Add shipment permission required'); return } var f = new FormData(e.target), loc = f.get('location'), s = findStock(loc, f.get('item')); if (!s) { toast('Select an available stock item'); return } var slabs = (+f.get('cases') || 0) * packings[s.packing].spc + (+f.get('loose') || 0); if (slabs <= 0 || slabs > s.slabs) { toast('Shipment quantity is not available'); return } var pending = policy === 'approval', weight = slabs * packings[s.packing].slab, value = weight * (+f.get('rate') || 0); if (!pending) s.slabs -= slabs; state.shipments.unshift({ id: f.get('reference'), customer: f.get('customer'), destination: f.get('destination'), location: loc, lines: 1, weight: weight, value: value, status: pending ? 'Pending approval' : 'Confirmed', submittedBy: currentRole, pendingKey: stockKey(s), pendingSlabs: slabs }); state.activity.unshift({ icon: 'truck', title: f.get('reference') + (pending ? ' submitted' : ' confirmed'), detail: pending ? 'Waiting for administrator approval' : kg(weight) + ' deducted from ' + loc, time: 'Now' }); e.target.closest('dialog').close(); renderAll(); toast(pending ? f.get('reference') + ' submitted for approval' : f.get('reference') + ' confirmed and stock deducted') };
+      addOutputLine(); renderAll(); updateAllCalcs();
+    })();
+  </script>
+</body>
+
+</html>
