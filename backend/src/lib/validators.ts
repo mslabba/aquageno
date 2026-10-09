@@ -55,6 +55,55 @@ export const qtyLineSchema = z.object({
   quantity: qtySchema,
 });
 
+export const wholeCasesSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{1,9}$/, 'Cases must be a whole number.')
+  .refine((value) => Number(value) >= 0, 'Cases cannot be negative.');
+
+export const nonNegativeQtySchema = z
+  .string()
+  .trim()
+  .regex(/^\d{1,12}(\.\d{1,3})?$/, 'Quantity can have at most 3 decimal places.')
+  .refine((value) => Number(value) >= 0, 'Quantity cannot be negative.');
+
+/** Transfer/shipment line: plain quantity OR case-based entry (cases + loose slabs). */
+const caseLineBase = z.object({
+  itemId: idSchema,
+  quantity: qtySchema.optional(),
+  cases: wholeCasesSchema.optional(),
+  looseSlabs: nonNegativeQtySchema.optional(),
+});
+
+const caseLineRefine = {
+  message: 'Enter a quantity, or cases / loose slabs.',
+} as const;
+
+function requireQtyOrCases<T extends { quantity?: string; cases?: string; looseSlabs?: string }>(value: T) {
+  return (
+    value.quantity !== undefined || value.cases !== undefined || value.looseSlabs !== undefined
+  );
+}
+
+export const caseLineSchema = caseLineBase.refine(requireQtyOrCases, {
+  message: caseLineRefine.message,
+});
+
+export const casePricedLineSchema = caseLineBase
+  .extend({
+    unitPrice: nonNegativeMoney,
+  })
+  .refine(requireQtyOrCases, { message: caseLineRefine.message });
+
+export const packingConfigSchema = z.object({
+  finishedItemId: idSchema,
+  grade: z.string().trim().min(1).max(40),
+  slabWeightKg: qtySchema,
+  slabsPerCase: z.coerce.number().int().min(1).max(100000),
+  tareWeightKg: nonNegativeQtySchema.optional().default('0.000'),
+  isActive: z.boolean().optional().default(true),
+});
+
 export const adjustmentLineSchema = z.object({
   itemId: idSchema,
   quantity: qtySchema,
@@ -78,6 +127,7 @@ export const productionSchema = z.object({
   warehouseId: idSchema,
   notes: z.string().trim().max(2000).optional().default(''),
   lines: z.array(qtyLineSchema).min(1, 'Add at least one consumption line.').max(200),
+  sourcePurchaseIds: z.array(idSchema).max(50).optional(),
 });
 
 export const transferSchema = z.object({
@@ -85,7 +135,7 @@ export const transferSchema = z.object({
   destinationWarehouseId: idSchema,
   transferDate: dateSchema,
   notes: z.string().trim().max(2000).optional().default(''),
-  lines: z.array(qtyLineSchema).min(1, 'Add at least one line.').max(200),
+  lines: z.array(caseLineSchema).min(1, 'Add at least one line.').max(200),
 }).refine((value) => value.sourceWarehouseId !== value.destinationWarehouseId, {
   message: 'Source and destination warehouses must be different.',
   path: ['destinationWarehouseId'],
@@ -97,7 +147,8 @@ export const shipmentSchema = z.object({
   warehouseId: idSchema,
   vehicleNo: z.string().trim().max(60).optional().default(''),
   notes: z.string().trim().max(2000).optional().default(''),
-  lines: z.array(pricedLineSchema).min(1, 'Add at least one line.').max(200),
+  lines: z.array(casePricedLineSchema).min(1, 'Add at least one line.').max(200),
+  sourceProductionIds: z.array(idSchema).max(50).optional(),
 });
 
 export const adjustmentSchema = z.object({

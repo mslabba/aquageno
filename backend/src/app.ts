@@ -29,6 +29,8 @@ import {
   shipmentsRouter,
   stockRouter,
   suppliersRouter,
+  packingConfigsRouter,
+  traceRouter,
   transfersRouter,
   unitsRouter,
   usersRouter,
@@ -91,6 +93,8 @@ app.use('/api/v1/suppliers', suppliersRouter);
 app.use('/api/v1/customers', customersRouter);
 app.use('/api/v1/items', itemsRouter);
 app.use('/api/v1/boms', bomsRouter);
+app.use('/api/v1/packing-configs', packingConfigsRouter);
+app.use('/api/v1/trace', traceRouter);
 app.use('/api/v1/purchases', purchasesRouter);
 app.use('/api/v1/production', productionsRouter);
 app.use('/api/v1/transfers', transfersRouter);

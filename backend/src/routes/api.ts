@@ -16,6 +16,7 @@ import {
   categorySchema,
   docListSchema,
   masterListSchema,
+  packingConfigSchema,
   partySchema,
   productionSchema,
   purchaseSchema,
@@ -342,6 +343,15 @@ export const bomsRouter = masterRouter('MASTER_DATA', {
   schema: bomSchema,
 });
 
+export const packingConfigsRouter = masterRouter('MASTER_DATA', {
+  list: catalog.listPackingConfigs,
+  create: catalog.createPackingConfig,
+  update: catalog.updatePackingConfig,
+  remove: catalog.deletePackingConfig,
+  get: catalog.getPackingConfig,
+  schema: packingConfigSchema,
+});
+
 export const purchasesRouter = documentRouter('PURCHASES', purchaseSchema, {
   list: docs.listPurchases,
   get: docs.getPurchase,
@@ -504,8 +514,7 @@ notificationsRouter.post(
   }),
 );
 
-export const auditRouter = Router();
-auditRouter.get(
+export const auditRouter = Router();auditRouter.get(
   '/',
   requirePerm('DASHBOARD', 'VIEW'),
   validateQuery(pagingSchema.extend({
@@ -537,6 +546,19 @@ dashboardRouter.get(
   requirePerm('DASHBOARD', 'VIEW'),
   wrap(async (_req, res) => {
     sendData(res, await insights.dashboard());
+  }),
+);
+
+export const traceRouter = Router();
+traceRouter.get(
+  '/',
+  requirePerm('STOCK', 'VIEW'),
+  wrap(async (req, res) => {
+    const pick = (name: string) => (typeof req.query[name] === 'string' ? String(req.query[name]) : undefined);
+    sendData(
+      res,
+      await docs.traceChain({ purchaseId: pick('purchaseId'), productionId: pick('productionId'), shipmentId: pick('shipmentId') }),
+    );
   }),
 );
 

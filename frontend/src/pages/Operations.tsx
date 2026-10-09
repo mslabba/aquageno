@@ -4,8 +4,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api, can, downloadCsv } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatDateTime, formatInr, formatQty, itemTypeLabel } from '../lib/format';
-import type { ReferenceData } from '../lib/types';
+import type { PackingBreakdown, ReferenceData } from '../lib/types';
 import { Badge, Banner, Button, Empty, Field, Modal, PageHeader, SelectInput, Spinner, TextArea, TextInput } from '../components/ui';
+
+type BalanceRow = Array<Record<string, string> & { packing?: PackingBreakdown | null }>;
+
+function packingOf(row: Record<string, string> & { packing?: PackingBreakdown | null }) {
+  return row.packing ?? null;
+}
 
 function useReference() {
   return useQuery({ queryKey: ['reference'], queryFn: () => api<ReferenceData>('/reference').then((result) => result.data) });
@@ -25,7 +31,7 @@ export function StockPage() {
       if (search) params.set('search', search);
       if (warehouseId) params.set('warehouseId', warehouseId);
       if (below) params.set('belowReorder', 'true');
-      return api<Array<Record<string, string>>>(`/stock/balances?${params}`);
+      return api<BalanceRow>(`/stock/balances?${params}`);
     },
   });
   const rows = query.data?.data ?? [];
@@ -68,7 +74,14 @@ export function StockPage() {
                   <b>{row.sku}</b>
                   <span className="mt-1 block text-xs text-muted">{row.name} · {itemTypeLabel(row.itemType)}</span>
                 </td>
-                <td className="px-3 py-3 text-right font-mono">{formatQty(row.quantity)} {row.unit}</td>
+                <td className="px-3 py-3 text-right font-mono">
+                  {formatQty(row.quantity)} {row.unit}
+                  {packingOf(row) ? (
+                    <span className="mt-1 block text-xs text-muted">
+                      {packingOf(row)!.cases} cases + {formatQty(packingOf(row)!.looseSlabs)} loose · {formatQty(packingOf(row)!.netWeightKg)} kg net
+                    </span>
+                  ) : null}
+                </td>
                 <td className="px-3 py-3 text-right font-mono">{formatQty(row.reorderLevel)}</td>
                 <td className="px-3 py-3 text-right font-mono">{formatInr(row.value)}</td>
               </tr>

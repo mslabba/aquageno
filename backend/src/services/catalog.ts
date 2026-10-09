@@ -8,6 +8,7 @@ import {
   bomSchema,
   categorySchema,
   itemSchema,
+  packingConfigSchema,
   partySchema,
   unitSchema,
   warehouseSchema,
@@ -623,4 +624,144 @@ export async function referenceData() {
 
 export async function assertNoDuplicateCode(message: string): Promise<never> {
   throw conflict(message);
+}
+
+const packingInclude = {
+  finishedItem: { include: { unit: true, category: true } },
+} satisfies Prisma.PackingConfigurationInclude;
+
+export async function listPackingConfigs(query: {
+  page: number;
+  pageSize: number;
+  search?: string;
+  state: 'active' | 'inactive' | 'all';
+}) {
+  const where: Prisma.PackingConfigurationWhereInput = {
+    ...stateWhere(query.state),
+    ...(query.search
+      ? {
+          OR: [
+            { grade: { contains: query.search, mode: 'insensitive' } },
+            { finishedItem: { sku: { contains: query.search, mode: 'insensitive' } } },
+            { finishedItem: { name: { contains: query.search, mode: 'insensitive' } } },
+          ],
+        }
+      : {}),
+  };
+  const [total, data] = await prisma.$transaction([
+    prisma.packingConfiguration.count({ where }),
+    prisma.packingConfiguration.findMany({
+      where,
+      include: packingInclude,
+      orderBy: { finishedItem: { sku: 'asc' } },
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
+    }),
+  ]);
+  return { data, total };
+}
+
+export async function getPackingConfig(id: string) {
+  const row = await prisma.packingConfiguration.findFirst({ where: { id }, include: packingInclude });
+  if (!row) throw notFound('Packing configuration');
+  return row;
+}
+
+export async function getPackingConfigByItemId(itemId: string) {
+  return prisma.packingConfiguration.findFirst({
+    where: { finishedItemId: itemId, isActive: true },
+  });
+}
+
+async function assertPackingItem(finishedItemId: string) {
+  const item = await prisma.item.findFirst({ where: { id: finishedItemId, deletedAt: null } });
+  if (!item || !item.isActive) throw validation('Choose an active item.');
+  if (item.itemType !== 'FINISHED_GOOD') throw validation('A packing configuration needs a finished good.');
+  return item;
+}
+
+export async function createPackingConfig(input: z.infer<typeof packingConfigSchema>, user: AuthUser) {
+  const item = await assertPackingItem(input.finishedItemId);
+  const existing = await prisma.packingConfiguration.findUnique({
+    where: { finishedItemId: input.finishedItemId },
+  });
+  if (existing) throw conflict(`${item.sku} already has a packing configuration.`);
+  const row = await prisma.packingConfiguration.create({
+    data: {
+      finishedItemId: input.finishedItemId,
+      grade: input.grade,
+      slabWeightKg: input.slabWeightKg,
+      slabsPerCase: input.slabsPerCase,
+      tareWeightKg: input.tareWeightKg ?? '0.000',
+      isActive: input.isActive ?? true,
+    },
+    include: packingInclude,
+  });
+  await writeAudit(prisma, {
+    userId: user.id,
+    action: 'CREATE',
+    entityType: 'PACKING_CONFIG',
+    entityId: row.id,
+    summary: `Added packing configuration for ${item.sku} (${input.grade}, ${input.slabsPerCase} slabs/case)`,
+    after: { sku: item.sku, grade: input.grade },
+  });
+  return row;
+}
+
+export async function updatePackingConfig(id: string, input: z.infer<typeof packingConfigSchema>, user: AuthUser) {
+  const existing = await prisma.packingConfiguration.findFirst({ where: { id } });
+  if (!existing) throw notFound('Packing configuration');
+  const item = await assertPackingItem(input.finishedItemId);
+  if (input.finishedItemId !== existing.finishedItemId) {
+    const clash = await prisma.packingConfiguration.findUnique({
+      where: { finishedItemId: input.finishedItemId },
+    });
+    if (clash) throw conflict(`${item.sku} already has a packing configuration.`);
+  }
+  const row = await prisma.packingConfiguration.update({
+    where: { id },
+    data: {
+      finishedItemId: input.finishedItemId,
+      grade: input.grade,
+      slabWeightKg: input.slabWeightKg,
+      slabsPerCase: input.slabsPerCase,
+      tareWeightKg: input.tareWeightKg ?? '0.000',
+      isActive: input.isActive ?? true,
+    },
+    include: packingInclude,
+  });
+  await writeAudit(prisma, {
+    userId: user.id,
+    action: 'UPDATE',
+    entityType: 'PACKING_CONFIG',
+    entityId: id,
+    summary: `Updated packing configuration for ${item.sku}`,
+    before: { grade: existing.grade, slabsPerCase: existing.slabsPerCase },
+    after: { grade: row.grade, slabsPerCase: row.slabsPerCase },
+  });
+  return row;
+}
+
+async function packingConfigUsage(id: string) {
+  const config = await prisma.packingConfiguration.findUniqueOrThrow({ where: { id } });
+  const [productions, transfers, shipments] = await prisma.$transaction([
+    prisma.production.count({ where: { finishedItemId: config.finishedItemId } }),
+    prisma.transferLine.count({ where: { itemId: config.finishedItemId, cases: { not: null } } }),
+    prisma.shipmentLine.count({ where: { itemId: config.finishedItemId, cases: { not: null } } }),
+  ]);
+  return productions + transfers + shipments;
+}
+
+export async function deletePackingConfig(id: string, user: AuthUser) {
+  const existing = await prisma.packingConfiguration.findFirst({ where: { id }, include: packingInclude });
+  if (!existing) throw notFound('Packing configuration');
+  return retire(
+    user,
+    'PACKING_CONFIG',
+    existing.finishedItem.sku,
+    id,
+    () => packingConfigUsage(id),
+    (tx) => tx.packingConfiguration.update({ where: { id }, data: { isActive: false } }),
+    (tx) => tx.packingConfiguration.delete({ where: { id } }),
+  );
 }

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api, can } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatQty, itemTypeLabel } from '../lib/format';
-import type { ItemOption, ReferenceData } from '../lib/types';
+import type { ItemOption, PackingConfig, ReferenceData } from '../lib/types';
 import { Badge, Banner, Button, Empty, Field, Modal, PageHeader, SelectInput, Spinner, TextInput } from '../components/ui';
 
 const TABS = [
@@ -14,6 +14,7 @@ const TABS = [
   ['suppliers', 'Suppliers'],
   ['customers', 'Customers'],
   ['boms', 'BOMs'],
+  ['packing', 'Packing configs'],
 ] as const;
 
 type Tab = (typeof TABS)[number][0];
@@ -37,6 +38,7 @@ export function MastersPage() {
       {tab === 'suppliers' ? <PartyPanel path="/suppliers" title="Supplier" /> : null}
       {tab === 'customers' ? <PartyPanel path="/customers" title="Customer" /> : null}
       {tab === 'boms' ? <BomPanel /> : null}
+      {tab === 'packing' ? <PackingPanel /> : null}
     </section>
   );
 }
@@ -365,6 +367,138 @@ const MODULE_LABEL: Record<string, string> = {
   ROLES: 'Roles',
   APPROVALS: 'Approvals',
 };
+
+function PackingPanel() {
+  const { user } = useAuth();
+  const reference = useQuery({ queryKey: ['reference'], queryFn: () => api<ReferenceData>('/reference').then((r) => r.data) });
+  const query = useQuery({
+    queryKey: ['packing-configs'],
+    queryFn: () => api<PackingConfig[]>('/packing-configs?state=all&pageSize=200').then((r) => r.data),
+  });
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({ id: '', finishedItemId: '', grade: '', slabWeightKg: '', slabsPerCase: '', tareWeightKg: '0.000', isActive: true });
+
+  const finishedGoods = (reference.data?.items ?? []).filter((item) => item.itemType === 'FINISHED_GOOD');
+
+  function edit(row?: PackingConfig) {
+    setError('');
+    setForm({
+      id: row?.id ?? '',
+      finishedItemId: row?.finishedItemId ?? '',
+      grade: row?.grade ?? '',
+      slabWeightKg: row?.slabWeightKg ?? '',
+      slabsPerCase: row ? String(row.slabsPerCase) : '',
+      tareWeightKg: row?.tareWeightKg ?? '0.000',
+      isActive: row?.isActive ?? true,
+    });
+    setOpen(true);
+  }
+
+  async function save() {
+    setError('');
+    const body = {
+      finishedItemId: form.finishedItemId,
+      grade: form.grade,
+      slabWeightKg: form.slabWeightKg,
+      slabsPerCase: Number(form.slabsPerCase),
+      tareWeightKg: form.tareWeightKg || '0.000',
+      isActive: form.isActive,
+    };
+    try {
+      if (form.id) await api(`/packing-configs/${form.id}`, { method: 'PATCH', body });
+      else await api('/packing-configs', { method: 'POST', body });
+      setOpen(false);
+      await query.refetch();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not save the packing configuration.');
+    }
+  }
+
+  async function remove(id: string) {
+    try {
+      await api(`/packing-configs/${id}`, { method: 'DELETE' });
+      await query.refetch();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not remove the packing configuration.');
+    }
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-sm text-muted">One finished good = one packing configuration. Slab = one packed unit · Case = {`{slabs per case}`} slabs. Stock stays in slabs; cases and loose slabs are derived.</p>
+      {can(user, 'MASTER_DATA', 'CREATE') ? <Button type="button" className="mb-3" onClick={() => edit()}>Add packing config</Button> : null}
+      {error ? <Banner>{error}</Banner> : null}
+      <div className="overflow-x-auto rounded-xl border border-line bg-white">
+        {query.isLoading ? <Spinner /> : null}
+        <table className="w-full min-w-[860px] text-sm">
+          <thead className="bg-[#f8fafa] text-left text-[11px] tracking-wide text-muted uppercase">
+            <tr>
+              <th className="px-3 py-3">Finished good</th>
+              <th className="px-3 py-3">Grade</th>
+              <th className="px-3 py-3 text-right">Slab wt (kg)</th>
+              <th className="px-3 py-3 text-right">Slabs / case</th>
+              <th className="px-3 py-3 text-right">Tare (kg)</th>
+              <th className="px-3 py-3">Status</th>
+              <th className="px-3 py-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {(query.data ?? []).map((row) => (
+              <tr key={row.id} className="border-t border-line">
+                <td className="px-3 py-3"><b className="font-mono">{row.finishedItem?.sku}</b><span className="mt-1 block text-xs text-muted">{row.finishedItem?.name}</span></td>
+                <td className="px-3 py-3 font-mono">{row.grade}</td>
+                <td className="px-3 py-3 text-right font-mono">{formatQty(row.slabWeightKg)}</td>
+                <td className="px-3 py-3 text-right font-mono">{row.slabsPerCase}</td>
+                <td className="px-3 py-3 text-right font-mono">{formatQty(row.tareWeightKg)}</td>
+                <td className="px-3 py-3">{row.isActive ? <Badge tone="ok">Active</Badge> : <Badge tone="neutral">Inactive</Badge>}</td>
+                <td className="px-3 py-3 text-right">
+                  {can(user, 'MASTER_DATA', 'EDIT') ? <Button type="button" variant="ghost" onClick={() => edit(row)}>Edit</Button> : null}
+                  {can(user, 'MASTER_DATA', 'DELETE') ? <Button type="button" variant="ghost" onClick={() => remove(row.id)}>Remove</Button> : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!query.isLoading && (query.data ?? []).length === 0 ? <Empty>No packing configurations yet.</Empty> : null}
+      </div>
+      {open ? (
+        <Modal title={form.id ? 'Edit packing config' : 'Add packing config'} onClose={() => setOpen(false)}>
+          {error ? <Banner>{error}</Banner> : null}
+          <div className="grid gap-3">
+            <Field label="Finished good">
+              <SelectInput value={form.finishedItemId} onChange={(e) => setForm({ ...form, finishedItemId: e.target.value })}>
+                <option value="">Select</option>
+                {finishedGoods.map((item) => <option key={item.id} value={item.id}>{item.sku} — {item.name}</option>)}
+              </SelectInput>
+            </Field>
+            <Field label="Size / grade (e.g. 6/10)">
+              <TextInput value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} placeholder="6/10" />
+            </Field>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="Slab weight (kg)">
+                <TextInput inputMode="decimal" value={form.slabWeightKg} onChange={(e) => setForm({ ...form, slabWeightKg: e.target.value })} placeholder="1.600" />
+              </Field>
+              <Field label="Slabs per case">
+                <TextInput inputMode="numeric" value={form.slabsPerCase} onChange={(e) => setForm({ ...form, slabsPerCase: e.target.value })} placeholder="6" />
+              </Field>
+              <Field label="Tare / box (kg)">
+                <TextInput inputMode="decimal" value={form.tareWeightKg} onChange={(e) => setForm({ ...form, tareWeightKg: e.target.value })} placeholder="0.000" />
+              </Field>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} /> Active
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button type="button" onClick={save}>Save</Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+    </div>
+  );
+}
 
 export function RolesPage() {
   const { user } = useAuth();

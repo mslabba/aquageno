@@ -22,6 +22,7 @@ import {
   transferSchema,
 } from '../lib/validators';
 import { applyMovements, type MovementDraft } from './stock';
+import { grossWeightKg, netWeightKg, slabsFromCases, splitSlabs } from '../lib/packing';
 import { notifyDecision, notifyLowStock, queueApprovalRequest, sendApprovalEmails } from './notify';
 
 type Tx = Prisma.TransactionClient;
@@ -110,6 +111,88 @@ function priceLines(lines: Array<{ itemId: string; quantity: string; unitPrice: 
   }));
 }
 
+type CaseLineInput = {
+  itemId: string;
+  quantity?: string;
+  cases?: string;
+  looseSlabs?: string;
+};
+
+async function resolvePacking(tx: Tx, itemId: string) {
+  return tx.packingConfiguration.findFirst({ where: { finishedItemId: itemId, isActive: true } });
+}
+
+/**
+ * Resolve a transfer/shipment line to slab quantities.
+ * Lines may carry a plain quantity, or a case-based entry (cases + loose slabs)
+ * which requires an active packing configuration on the item.
+ */
+async function slabQtyForLine(tx: Tx, line: CaseLineInput) {
+  const useCases = line.cases !== undefined || line.looseSlabs !== undefined;
+  if (!useCases) {
+    if (line.quantity === undefined) throw validation('Enter a quantity, or cases / loose slabs.');
+    return { quantity: qty(line.quantity), cases: null as string | null, looseSlabs: null as string | null, netWeightKg: null as string | null };
+  }
+  const config = await resolvePacking(tx, line.itemId);
+  if (!config) throw validation('Cases can only be entered for items with a packing configuration.');
+  let quantity: string;
+  try {
+    quantity = slabsFromCases(line.cases ?? '0', line.looseSlabs ?? '0.000', config.slabsPerCase);
+  } catch {
+    throw validation('Cases / loose slabs must total more than zero.');
+  }
+  return {
+    quantity,
+    cases: qty(line.cases ?? '0'),
+    looseSlabs: qty(line.looseSlabs ?? '0.000'),
+    netWeightKg: netWeightKg(quantity, config.slabWeightKg),
+  };
+}
+
+async function caseQtyLines(tx: Tx, lines: CaseLineInput[]) {
+  const resolved: Array<{ itemId: string; quantity: string; cases: string | null; looseSlabs: string | null; sortOrder: number }> = [];
+  for (const [index, line] of lines.entries()) {
+    const r = await slabQtyForLine(tx, line);
+    resolved.push({ itemId: line.itemId, quantity: r.quantity, cases: r.cases, looseSlabs: r.looseSlabs, sortOrder: index });
+  }
+  return resolved;
+}
+
+async function casePriceLines(tx: Tx, lines: Array<CaseLineInput & { unitPrice: string }>) {
+  const resolved: Array<{
+    itemId: string; quantity: string; cases: string | null; looseSlabs: string | null;
+    netWeightKg: string | null; unitPrice: string; lineTotal: string; sortOrder: number;
+  }> = [];
+  for (const [index, line] of lines.entries()) {
+    const r = await slabQtyForLine(tx, line);
+    resolved.push({
+      itemId: line.itemId,
+      quantity: r.quantity,
+      cases: r.cases,
+      looseSlabs: r.looseSlabs,
+      netWeightKg: r.netWeightKg,
+      unitPrice: money(line.unitPrice),
+      lineTotal: lineTotal(r.quantity, line.unitPrice),
+      sortOrder: index,
+    });
+  }
+  return resolved;
+}
+
+async function assertSourcePurchases(tx: Tx, ids: string[]) {
+  const unique = [...new Set(ids)];
+  if (!unique.length) return;
+  const count = await tx.purchase.count({ where: { id: { in: unique }, deletedAt: null } });
+  if (count !== unique.length) throw validation('One or more source purchases are missing.');
+}
+
+async function assertSourceProductions(tx: Tx, ids: string[]) {
+  const unique = [...new Set(ids)];
+  if (!unique.length) return;
+  const count = await tx.production.count({ where: { id: { in: unique }, deletedAt: null } });
+  if (count !== unique.length) throw validation('One or more source production batches are missing.');
+}
+
 async function withPeople<T extends Loaded & {
   approvedById?: string | null;
   rejectedById?: string | null;
@@ -125,21 +208,23 @@ const purchaseInclude = {
 } satisfies Prisma.PurchaseInclude;
 
 const productionInclude = {
-  finishedItem: { include: { unit: true } },
+  finishedItem: { include: { unit: true, packingConfig: true } },
   warehouse: true,
   lines: { include: { item: { include: { unit: true } } }, orderBy: { sortOrder: 'asc' as const } },
+  sources: { include: { purchase: { select: { id: true, docNo: true } } } },
 } satisfies Prisma.ProductionInclude;
 
 const transferInclude = {
   sourceWarehouse: true,
   destinationWarehouse: true,
-  lines: { include: { item: { include: { unit: true } } }, orderBy: { sortOrder: 'asc' as const } },
+  lines: { include: { item: { include: { unit: true, packingConfig: true } } }, orderBy: { sortOrder: 'asc' as const } },
 } satisfies Prisma.TransferInclude;
 
 const shipmentInclude = {
   customer: true,
   warehouse: true,
-  lines: { include: { item: { include: { unit: true } } }, orderBy: { sortOrder: 'asc' as const } },
+  lines: { include: { item: { include: { unit: true, packingConfig: true } } }, orderBy: { sortOrder: 'asc' as const } },
+  sources: { include: { production: { select: { id: true, docNo: true } } } },
 } satisfies Prisma.ShipmentInclude;
 
 const adjustmentInclude = {
@@ -647,7 +732,25 @@ async function productionLines(tx: Tx, input: z.infer<typeof productionSchema>) 
       sortOrder: index,
     };
   });
-  return { lines, totalAmount: money(cost) };
+  // Slab/case split: when the finished good has a packing configuration,
+  // the produced quantity is slabs; derive whole cases + loose slabs.
+  const packing = await resolvePacking(tx, finished.id);
+  let packingResult: {
+    slabsProduced: string;
+    casesProduced: number;
+    looseSlabs: string;
+    netWeightKg: string;
+  } | null = null;
+  if (packing) {
+    const split = splitSlabs(input.quantity, packing.slabsPerCase);
+    packingResult = {
+      slabsProduced: qty(input.quantity),
+      casesProduced: split.cases,
+      looseSlabs: split.looseSlabs,
+      netWeightKg: netWeightKg(input.quantity, packing.slabWeightKg),
+    };
+  }
+  return { lines, totalAmount: money(cost), packing: packingResult };
 }
 
 export async function listProductions(query: DocQuery) {
@@ -697,6 +800,7 @@ export async function createProduction(input: z.infer<typeof productionSchema>, 
   const id = await prisma.$transaction(async (tx) => {
     await assertWarehouse(tx, input.warehouseId);
     const built = await productionLines(tx, input);
+    await assertSourcePurchases(tx, input.sourcePurchaseIds ?? []);
     const docNo = await nextDocNo(tx, 'PRD');
     const created = await tx.production.create({
       data: {
@@ -704,6 +808,10 @@ export async function createProduction(input: z.infer<typeof productionSchema>, 
         seedKey,
         finishedItemId: input.finishedItemId,
         quantity: qty(input.quantity),
+        slabsProduced: built.packing?.slabsProduced ?? null,
+        casesProduced: built.packing?.casesProduced ?? null,
+        looseSlabs: built.packing?.looseSlabs ?? null,
+        netWeightKg: built.packing?.netWeightKg ?? null,
         batchNo: input.batchNo,
         producedOn: parseDate(input.producedOn),
         warehouseId: input.warehouseId,
@@ -711,6 +819,9 @@ export async function createProduction(input: z.infer<typeof productionSchema>, 
         totalAmount: built.totalAmount,
         createdById: user.id,
         lines: { create: built.lines },
+        sources: {
+          create: [...new Set(input.sourcePurchaseIds ?? [])].map((purchaseId) => ({ purchaseId })),
+        },
       },
       include: productionInclude,
     });
@@ -735,18 +846,27 @@ export async function updateProduction(id: string, input: z.infer<typeof product
     editable(existing.status);
     await assertWarehouse(tx, input.warehouseId);
     const built = await productionLines(tx, input);
+    await assertSourcePurchases(tx, input.sourcePurchaseIds ?? []);
     await tx.productionLine.deleteMany({ where: { productionId: id } });
+    await tx.productionSource.deleteMany({ where: { productionId: id } });
     const updated = await tx.production.update({
       where: { id },
       data: {
         finishedItemId: input.finishedItemId,
         quantity: qty(input.quantity),
+        slabsProduced: built.packing?.slabsProduced ?? null,
+        casesProduced: built.packing?.casesProduced ?? null,
+        looseSlabs: built.packing?.looseSlabs ?? null,
+        netWeightKg: built.packing?.netWeightKg ?? null,
         batchNo: input.batchNo,
         producedOn: parseDate(input.producedOn),
         warehouseId: input.warehouseId,
         notes: input.notes ?? '',
         totalAmount: built.totalAmount,
         lines: { create: built.lines },
+        sources: {
+          create: [...new Set(input.sourcePurchaseIds ?? [])].map((purchaseId) => ({ purchaseId })),
+        },
       },
       include: productionInclude,
     });
@@ -769,6 +889,10 @@ function productionSnapshot(doc: Prisma.ProductionGetPayload<{ include: typeof p
     finishedItemId: doc.finishedItemId,
     sku: doc.finishedItem.sku,
     quantity: qty(doc.quantity),
+    slabsProduced: doc.slabsProduced ? qty(doc.slabsProduced) : null,
+    casesProduced: doc.casesProduced,
+    looseSlabs: doc.looseSlabs ? qty(doc.looseSlabs) : null,
+    netWeightKg: doc.netWeightKg ? qty(doc.netWeightKg) : null,
     batchNo: doc.batchNo,
     producedOn: formatDate(doc.producedOn),
     warehouseId: doc.warehouseId,
@@ -945,6 +1069,7 @@ export async function createTransfer(input: z.infer<typeof transferSchema>, user
     await assertWarehouse(tx, input.sourceWarehouseId);
     await assertWarehouse(tx, input.destinationWarehouseId);
     await assertItems(tx, input.lines.map((line) => line.itemId));
+    const builtLines = await caseQtyLines(tx, input.lines);
     const docNo = await nextDocNo(tx, 'TRF');
     const created = await tx.transfer.create({
       data: {
@@ -955,7 +1080,7 @@ export async function createTransfer(input: z.infer<typeof transferSchema>, user
         transferDate: parseDate(input.transferDate),
         notes: input.notes ?? '',
         createdById: user.id,
-        lines: { create: qtyLines(input.lines) },
+        lines: { create: builtLines },
       },
       include: transferInclude,
     });
@@ -981,6 +1106,7 @@ export async function updateTransfer(id: string, input: z.infer<typeof transferS
     await assertWarehouse(tx, input.sourceWarehouseId);
     await assertWarehouse(tx, input.destinationWarehouseId);
     await assertItems(tx, input.lines.map((line) => line.itemId));
+    const builtLines = await caseQtyLines(tx, input.lines);
     await tx.transferLine.deleteMany({ where: { transferId: id } });
     const updated = await tx.transfer.update({
       where: { id },
@@ -989,7 +1115,7 @@ export async function updateTransfer(id: string, input: z.infer<typeof transferS
         destinationWarehouseId: input.destinationWarehouseId,
         transferDate: parseDate(input.transferDate),
         notes: input.notes ?? '',
-        lines: { create: qtyLines(input.lines) },
+        lines: { create: builtLines },
       },
       include: transferInclude,
     });
@@ -1014,7 +1140,7 @@ function transferSnapshot(doc: Prisma.TransferGetPayload<{ include: typeof trans
     transferDate: formatDate(doc.transferDate),
     notes: doc.notes,
     isReversal: doc.isReversal,
-    lines: doc.lines.map((line) => ({ itemId: line.itemId, sku: line.item.sku, quantity: qty(line.quantity) })),
+    lines: doc.lines.map((line) => ({ itemId: line.itemId, sku: line.item.sku, quantity: qty(line.quantity), cases: line.cases ? qty(line.cases) : null, looseSlabs: line.looseSlabs ? qty(line.looseSlabs) : null })),
   };
 }
 
@@ -1091,7 +1217,7 @@ export async function reverseTransfer(id: string, user: AuthUser) {
         isReversal: true,
         reversalOfId: doc.id,
         createdById: user.id,
-        lines: { create: doc.lines.map((line, index) => ({ itemId: line.itemId, quantity: line.quantity, sortOrder: index })) },
+        lines: { create: doc.lines.map((line, index) => ({ itemId: line.itemId, quantity: line.quantity, cases: line.cases, looseSlabs: line.looseSlabs, sortOrder: index })) },
       },
     });
     await writeAudit(tx, {
@@ -1158,11 +1284,12 @@ export async function createShipment(input: z.infer<typeof shipmentSchema>, user
     const existing = await prisma.shipment.findUnique({ where: { seedKey } });
     if (existing && !existing.deletedAt) return getShipment(existing.id);
   }
-  const lines = priceLines(input.lines);
   const id = await prisma.$transaction(async (tx) => {
     await assertCustomer(tx, input.customerId);
     await assertWarehouse(tx, input.warehouseId);
     await assertItems(tx, input.lines.map((line) => line.itemId));
+    await assertSourceProductions(tx, input.sourceProductionIds ?? []);
+    const lines = await casePriceLines(tx, input.lines);
     const docNo = await nextDocNo(tx, 'SHP');
     const created = await tx.shipment.create({
       data: {
@@ -1176,6 +1303,9 @@ export async function createShipment(input: z.infer<typeof shipmentSchema>, user
         totalAmount: sumMoney(lines.map((line) => line.lineTotal)),
         createdById: user.id,
         lines: { create: lines },
+        sources: {
+          create: [...new Set(input.sourceProductionIds ?? [])].map((productionId) => ({ productionId })),
+        },
       },
       include: shipmentInclude,
     });
@@ -1194,7 +1324,6 @@ export async function createShipment(input: z.infer<typeof shipmentSchema>, user
 
 export async function updateShipment(id: string, input: z.infer<typeof shipmentSchema>, user: AuthUser) {
   ensure(user, 'SHIPMENTS', 'EDIT');
-  const lines = priceLines(input.lines);
   await prisma.$transaction(async (tx) => {
     const existing = await tx.shipment.findFirst({ where: { id, deletedAt: null }, include: shipmentInclude });
     if (!existing) throw notFound('Shipment');
@@ -1202,7 +1331,10 @@ export async function updateShipment(id: string, input: z.infer<typeof shipmentS
     await assertCustomer(tx, input.customerId);
     await assertWarehouse(tx, input.warehouseId);
     await assertItems(tx, input.lines.map((line) => line.itemId));
+    await assertSourceProductions(tx, input.sourceProductionIds ?? []);
+    const lines = await casePriceLines(tx, input.lines);
     await tx.shipmentLine.deleteMany({ where: { shipmentId: id } });
+    await tx.shipmentSource.deleteMany({ where: { shipmentId: id } });
     const updated = await tx.shipment.update({
       where: { id },
       data: {
@@ -1213,6 +1345,9 @@ export async function updateShipment(id: string, input: z.infer<typeof shipmentS
         notes: input.notes ?? '',
         totalAmount: sumMoney(lines.map((line) => line.lineTotal)),
         lines: { create: lines },
+        sources: {
+          create: [...new Set(input.sourceProductionIds ?? [])].map((productionId) => ({ productionId })),
+        },
       },
       include: shipmentInclude,
     });
@@ -1242,6 +1377,9 @@ function shipmentSnapshot(doc: Prisma.ShipmentGetPayload<{ include: typeof shipm
       itemId: line.itemId,
       sku: line.item.sku,
       quantity: qty(line.quantity),
+      cases: line.cases ? qty(line.cases) : null,
+      looseSlabs: line.looseSlabs ? qty(line.looseSlabs) : null,
+      netWeightKg: line.netWeightKg ? qty(line.netWeightKg) : null,
       unitPrice: money(line.unitPrice),
       lineTotal: money(line.lineTotal),
     })),
@@ -1635,3 +1773,81 @@ export const docLinks = {
   SHIPMENT: '/shipments',
   ADJUSTMENT: '/adjustments',
 };
+
+/**
+ * Traceability chain: purchase -> production -> shipment.
+ * Pass exactly one of purchaseId / productionId / shipmentId.
+ */
+export async function traceChain(query: { purchaseId?: string; productionId?: string; shipmentId?: string }) {
+  if (query.purchaseId) {
+    const purchase = await prisma.purchase.findFirst({
+      where: { id: query.purchaseId, deletedAt: null },
+      select: { id: true, docNo: true, invoiceNo: true, status: true },
+    });
+    if (!purchase) throw notFound('Purchase');
+    const productions = await prisma.production.findMany({
+      where: { deletedAt: null, sources: { some: { purchaseId: purchase.id } } },
+      select: {
+        id: true, docNo: true, batchNo: true, status: true,
+        finishedItem: { select: { sku: true, name: true } },
+      },
+      orderBy: { producedOn: 'asc' },
+    });
+    const prodIds = productions.map((p) => p.id);
+    const shipments = prodIds.length
+      ? await prisma.shipment.findMany({
+          where: { deletedAt: null, sources: { some: { productionId: { in: prodIds } } } },
+          select: { id: true, docNo: true, status: true, customer: { select: { name: true } } },
+          orderBy: { shipmentDate: 'asc' },
+        })
+      : [];
+    return { purchase, productions, shipments };
+  }
+  if (query.productionId) {
+    const production = await prisma.production.findFirst({
+      where: { id: query.productionId, deletedAt: null },
+      select: {
+        id: true, docNo: true, batchNo: true, status: true,
+        sources: { include: { purchase: { select: { id: true, docNo: true, invoiceNo: true } } } },
+      },
+    });
+    if (!production) throw notFound('Production');
+    const shipments = await prisma.shipment.findMany({
+      where: { deletedAt: null, sources: { some: { productionId: production.id } } },
+      select: { id: true, docNo: true, status: true, customer: { select: { name: true } } },
+      orderBy: { shipmentDate: 'asc' },
+    });
+    return {
+      production: { id: production.id, docNo: production.docNo, batchNo: production.batchNo, status: production.status },
+      purchases: production.sources.map((s) => s.purchase),
+      shipments,
+    };
+  }
+  if (query.shipmentId) {
+    const shipment = await prisma.shipment.findFirst({
+      where: { id: query.shipmentId, deletedAt: null },
+      select: {
+        id: true, docNo: true, status: true,
+        sources: {
+          include: {
+            production: {
+              select: {
+                id: true, docNo: true, batchNo: true,
+                sources: { include: { purchase: { select: { id: true, docNo: true, invoiceNo: true } } } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!shipment) throw notFound('Shipment');
+    const productions = shipment.sources.map((s) => s.production);
+    const purchases = [...new Map(productions.flatMap((p) => p.sources.map((s) => s.purchase)).map((p) => [p.id, p])).values()];
+    return {
+      shipment: { id: shipment.id, docNo: shipment.docNo, status: shipment.status },
+      productions: productions.map((p) => ({ id: p.id, docNo: p.docNo, batchNo: p.batchNo })),
+      purchases,
+    };
+  }
+  throw validation('Pass purchaseId, productionId or shipmentId.');
+}

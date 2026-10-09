@@ -363,6 +363,63 @@ export async function seed() {
     });
   }
 
+  // Slab/case finished goods from the business-understanding document
+  // (Merlin purchase production details). One item per product/grade/packing.
+  const slb = await ensureUnit('SLB', 'Slab');
+  async function ensurePackingConfig(input: {
+    finishedItemId: string;
+    grade: string;
+    slabWeightKg: string;
+    slabsPerCase: number;
+    tareWeightKg: string;
+  }) {
+    return prisma.packingConfiguration.upsert({
+      where: { finishedItemId: input.finishedItemId },
+      update: {},
+      create: { ...input, isActive: true },
+    });
+  }
+  const squidPackings: Array<{
+    sku: string;
+    name: string;
+    grade: string;
+    slabWeightKg: string;
+    slabsPerCase: number;
+    tareWeightKg: string;
+    standardCost: string;
+  }> = [
+    { sku: 'FG-SQBC-U2-5X36', name: 'Squid Whole BC U/2 5x3.6kg', grade: 'U/2', slabWeightKg: '3.600', slabsPerCase: 5, tareWeightKg: '0.800', standardCost: '520.00' },
+    { sku: 'FG-SQBC-U3-5X36', name: 'Squid Whole BC U/3 5x3.6kg', grade: 'U/3', slabWeightKg: '3.600', slabsPerCase: 5, tareWeightKg: '0.800', standardCost: '500.00' },
+    { sku: 'FG-SQBC-36-10X2', name: 'Squid Whole BC 3/6 10x2kg', grade: '3/6', slabWeightKg: '2.000', slabsPerCase: 10, tareWeightKg: '0.900', standardCost: '480.00' },
+    { sku: 'FG-SQBC-610-10X2', name: 'Squid Whole BC 6/10 10x2kg', grade: '6/10', slabWeightKg: '2.000', slabsPerCase: 10, tareWeightKg: '0.900', standardCost: '460.00' },
+    { sku: 'FG-SQBC-1015-10X2', name: 'Squid Whole BC 10/15 10x2kg', grade: '10/15', slabWeightKg: '2.000', slabsPerCase: 10, tareWeightKg: '0.900', standardCost: '440.00' },
+    { sku: 'FG-SQBC-36-4X5', name: 'Squid Whole BC 3/6 4x5kg', grade: '3/6', slabWeightKg: '5.000', slabsPerCase: 4, tareWeightKg: '1.000', standardCost: '475.00' },
+    { sku: 'FG-SQBC-610-4X5', name: 'Squid Whole BC 6/10 4x5kg', grade: '6/10', slabWeightKg: '5.000', slabsPerCase: 4, tareWeightKg: '1.000', standardCost: '455.00' },
+    { sku: 'FG-SQBC-1015-4X5', name: 'Squid Whole BC 10/15 4x5kg', grade: '10/15', slabWeightKg: '5.000', slabsPerCase: 4, tareWeightKg: '1.000', standardCost: '435.00' },
+    { sku: 'FG-SQSN-610-6X18', name: 'Squid Whole Semi Needle 6/10 6x1.8kg', grade: '6/10', slabWeightKg: '1.800', slabsPerCase: 6, tareWeightKg: '0.700', standardCost: '490.00' },
+    { sku: 'FG-SQSN-1020-6X18', name: 'Squid Whole Semi Needle 10/20 6x1.8kg', grade: '10/20', slabWeightKg: '1.800', slabsPerCase: 6, tareWeightKg: '0.700', standardCost: '470.00' },
+  ];
+  const squidFgIds: Record<string, string> = {};
+  for (const pack of squidPackings) {
+    const item = await ensureItem({
+      sku: pack.sku,
+      name: pack.name,
+      itemType: 'FINISHED_GOOD',
+      categoryId: ceph.id,
+      unitId: slb.id,
+      reorderLevel: '0.000',
+      standardCost: pack.standardCost,
+    });
+    await ensurePackingConfig({
+      finishedItemId: item.id,
+      grade: pack.grade,
+      slabWeightKg: pack.slabWeightKg,
+      slabsPerCase: pack.slabsPerCase,
+      tareWeightKg: pack.tareWeightKg,
+    });
+    squidFgIds[pack.sku] = item.id;
+  }
+
   const maker = await actor('rafi.khan@aquageno.local');
   const approver = await actor('meera.nair@aquageno.local');
   const today = businessToday();
@@ -438,6 +495,25 @@ export async function seed() {
   if (production.status === 'DRAFT') production = await docs.submitProduction(production.id, maker);
   if (production.status === 'PENDING_APPROVAL') {
     await docs.approveProduction(production.id, approver, 'Yield checked on the floor');
+  }
+
+  // Demo slab/case production: 415 slabs at 6 slabs/case -> 69 cases + 1 loose slab.
+  let slabProduction: { id: string; status: string } = await docs.createProduction(
+    {
+      finishedItemId: squidFgIds['FG-SQSN-610-6X18'],
+      quantity: '415.000',
+      batchNo: 'BATCH-2609-SQ',
+      producedOn: today,
+      warehouseId: kochi.id,
+      notes: 'Squid Whole Semi Needle 6/10 graded and packed.',
+      lines: [{ itemId: squid.id, quantity: '760.000' }],
+    },
+    maker,
+    'seed-production-slab',
+  );
+  if (slabProduction.status === 'DRAFT') slabProduction = await docs.submitProduction(slabProduction.id, maker);
+  if (slabProduction.status === 'PENDING_APPROVAL') {
+    await docs.approveProduction(slabProduction.id, approver, 'Slab count verified');
   }
 
   let pendingPurchase: { id: string; status: string } = await docs.createPurchase(

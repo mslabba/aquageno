@@ -1,5 +1,28 @@
 export type Named = { id: string; code?: string; name: string };
 
+export type PackingConfig = {
+  id: string;
+  finishedItemId: string;
+  grade: string;
+  slabWeightKg: string;
+  slabsPerCase: number;
+  tareWeightKg: string;
+  isActive: boolean;
+  finishedItem?: { sku: string; name: string; unit?: { code: string } };
+};
+
+export type PackingBreakdown = {
+  grade: string;
+  slabsPerCase: number;
+  slabWeightKg: string;
+  tareWeightKg: string;
+  cases: number;
+  looseSlabs: string;
+  totalSlabs: string;
+  netWeightKg: string;
+  grossWeightKg: string;
+};
+
 export type ItemOption = {
   id: string;
   sku: string;
@@ -24,6 +47,9 @@ export type ReferenceData = {
 export type DocLine = {
   itemId: string;
   quantity: string;
+  cases?: string | null;
+  looseSlabs?: string | null;
+  netWeightKg?: string | null;
   unitPrice?: string;
   lineTotal?: string;
   direction?: 'IN' | 'OUT';
@@ -47,6 +73,10 @@ export type Doc = {
   finishedItemId?: string;
   finishedItem?: { name: string; sku: string };
   quantity?: string;
+  slabsProduced?: string | null;
+  casesProduced?: number | null;
+  looseSlabs?: string | null;
+  netWeightKg?: string | null;
   batchNo?: string;
   producedOn?: string;
   sourceWarehouseId?: string;
@@ -67,7 +97,7 @@ export type Doc = {
   _count?: { lines: number };
 };
 
-export type FormLine = { itemId: string; quantity: string; unitPrice: string; direction: 'IN' | 'OUT' };
+export type FormLine = { itemId: string; quantity: string; cases: string; looseSlabs: string; unitPrice: string; direction: 'IN' | 'OUT' };
 
 export type FormValues = {
   supplierId: string;

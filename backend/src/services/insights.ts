@@ -2,6 +2,7 @@ import { DocStatus, Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { businessToday, formatDate, parseDate } from '../lib/dates';
 import { d, money, qty } from '../lib/money';
+import { grossWeightKg, netWeightKg, splitSlabs } from '../lib/packing';
 import type { z } from 'zod';
 import { reportQuerySchema, stockQuerySchema } from '../lib/validators';
 
@@ -134,28 +135,58 @@ export async function stockBalances(query: StockQuery) {
           : {}),
       },
     },
-    include: { item: { include: { unit: true, category: true } }, warehouse: true },
+    include: { item: { include: { unit: true, category: true, packingConfig: true } }, warehouse: true },
     orderBy: [{ item: { sku: 'asc' } }, { warehouse: { code: 'asc' } }],
   });
   const totals = new Map<string, Prisma.Decimal>();
   for (const row of rows) {
     totals.set(row.itemId, (totals.get(row.itemId) ?? d(0)).plus(d(row.quantity)));
   }
-  let shaped = rows.map((row) => ({
-    itemId: row.itemId,
-    sku: row.item.sku,
-    name: row.item.name,
-    itemType: row.item.itemType,
-    category: row.item.category.name,
-    unit: row.item.unit.code,
-    warehouseId: row.warehouseId,
-    warehouse: row.warehouse.name,
-    quantity: qty(row.quantity),
-    reorderLevel: qty(row.item.reorderLevel),
-    standardCost: money(row.item.standardCost),
-    value: money(d(row.quantity).mul(d(row.item.standardCost))),
-    totalOnHand: qty(totals.get(row.itemId) ?? 0),
-  }));
+  let shaped = rows.map((row) => {
+    const packing = row.item.packingConfig?.isActive ? row.item.packingConfig : null;
+    let packingBreakdown: {
+      grade: string;
+      slabsPerCase: number;
+      slabWeightKg: string;
+      tareWeightKg: string;
+      cases: number;
+      looseSlabs: string;
+      totalSlabs: string;
+      netWeightKg: string;
+      grossWeightKg: string;
+    } | null = null;
+    if (packing) {
+      const split = splitSlabs(row.quantity, packing.slabsPerCase);
+      const net = netWeightKg(row.quantity, packing.slabWeightKg);
+      packingBreakdown = {
+        grade: packing.grade,
+        slabsPerCase: packing.slabsPerCase,
+        slabWeightKg: qty(packing.slabWeightKg),
+        tareWeightKg: qty(packing.tareWeightKg),
+        cases: split.cases,
+        looseSlabs: split.looseSlabs,
+        totalSlabs: qty(row.quantity),
+        netWeightKg: net,
+        grossWeightKg: grossWeightKg(net, split.cases, packing.tareWeightKg),
+      };
+    }
+    return {
+      itemId: row.itemId,
+      sku: row.item.sku,
+      name: row.item.name,
+      itemType: row.item.itemType,
+      category: row.item.category.name,
+      unit: row.item.unit.code,
+      warehouseId: row.warehouseId,
+      warehouse: row.warehouse.name,
+      quantity: qty(row.quantity),
+      reorderLevel: qty(row.item.reorderLevel),
+      standardCost: money(row.item.standardCost),
+      value: money(d(row.quantity).mul(d(row.item.standardCost))),
+      totalOnHand: qty(totals.get(row.itemId) ?? 0),
+      packing: packingBreakdown,
+    };
+  });
   if (query.belowReorder === 'true') {
     const watched = await prisma.item.findMany({
       where: {
@@ -201,6 +232,7 @@ export async function stockBalances(query: StockQuery) {
         standardCost: money(item.standardCost),
         value: money(onHand.mul(d(item.standardCost))),
         totalOnHand: qty(onHand),
+        packing: null,
       });
     }
   } else {

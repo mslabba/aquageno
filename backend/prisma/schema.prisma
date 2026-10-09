@@ -223,6 +223,7 @@ model Item {
   balances          StockBalance[]
   purchaseLines     PurchaseLine[]
   productionOutputs Production[]   @relation("ProductionOutput")
+  packingConfig   PackingConfiguration? @relation("ItemPackingConfig")
   productionLines   ProductionLine[]
   transferLines     TransferLine[]
   shipmentLines     ShipmentLine[]
@@ -345,6 +346,7 @@ model Purchase {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   lines            PurchaseLine[]
+  usedIn           ProductionSource[]
 
   @@index([status])
   @@index([supplierId])
@@ -374,6 +376,10 @@ model Production {
   finishedItemId   String
   finishedItem     Item      @relation("ProductionOutput", fields: [finishedItemId], references: [id])
   quantity         Decimal   @db.Decimal(18, 3)
+  slabsProduced    Decimal?  @db.Decimal(18, 3)
+  casesProduced    Int?
+  looseSlabs       Decimal?  @db.Decimal(18, 3)
+  netWeightKg      Decimal?  @db.Decimal(18, 3)
   batchNo          String
   producedOn       DateTime  @db.Date
   warehouseId      String
@@ -396,11 +402,53 @@ model Production {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   lines            ProductionLine[]
+  sources          ProductionSource[]
+  shipmentSources  ShipmentSource[]
 
   @@index([status])
   @@index([warehouseId])
   @@index([producedOn])
   @@index([finishedItemId])
+}
+
+// Packing configuration: how a finished good is packed into slabs and cases.
+// Slab = one packed unit of slabWeightKg. Case = slabsPerCase slabs.
+// Stock for the item is kept in slabs; cases/loose slabs are derived.
+model PackingConfiguration {
+  id             String   @id @default(cuid())
+  finishedItemId String   @unique
+  finishedItem   Item     @relation("ItemPackingConfig", fields: [finishedItemId], references: [id])
+  grade          String
+  slabWeightKg   Decimal  @db.Decimal(18, 3)
+  slabsPerCase   Int
+  tareWeightKg   Decimal  @default(0) @db.Decimal(18, 3)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([finishedItemId])
+}
+
+// Traceability: which purchases fed a production batch.
+model ProductionSource {
+  productionId String
+  production   Production @relation(fields: [productionId], references: [id], onDelete: Cascade)
+  purchaseId   String
+  purchase     Purchase   @relation(fields: [purchaseId], references: [id])
+
+  @@id([productionId, purchaseId])
+  @@index([purchaseId])
+}
+
+// Traceability: which production batches fed a shipment.
+model ShipmentSource {
+  shipmentId   String
+  shipment     Shipment   @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  productionId String
+  production   Production @relation(fields: [productionId], references: [id])
+
+  @@id([shipmentId, productionId])
+  @@index([productionId])
 }
 
 model ProductionLine {
@@ -455,6 +503,8 @@ model TransferLine {
   itemId     String
   item       Item     @relation(fields: [itemId], references: [id])
   quantity   Decimal  @db.Decimal(18, 3)
+  cases      Decimal? @db.Decimal(18, 3)
+  looseSlabs Decimal? @db.Decimal(18, 3)
   sortOrder  Int      @default(0)
 
   @@index([transferId])
@@ -489,6 +539,7 @@ model Shipment {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   lines            ShipmentLine[]
+  sources          ShipmentSource[]
 
   @@index([status])
   @@index([shipmentDate])
@@ -502,6 +553,9 @@ model ShipmentLine {
   itemId     String
   item       Item     @relation(fields: [itemId], references: [id])
   quantity   Decimal  @db.Decimal(18, 3)
+  cases      Decimal? @db.Decimal(18, 3)
+  looseSlabs Decimal? @db.Decimal(18, 3)
+  netWeightKg Decimal? @db.Decimal(18, 3)
   unitPrice  Decimal  @db.Decimal(18, 2)
   lineTotal  Decimal  @db.Decimal(18, 2)
   sortOrder  Int      @default(0)

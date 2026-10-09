@@ -8,7 +8,7 @@ import { Plus, Trash } from '@phosphor-icons/react';
 import { ApiError, api, can } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatDate, formatInr, formatQty, lineTotal, STATUS_LABEL, statusTone, sumMoney, todayInput, reasonLabel, scaleQty } from '../lib/format';
-import type { Doc, FormValues, ItemOption, ReferenceData } from '../lib/types';
+import type { Doc, FormValues, ItemOption, PackingConfig, ReferenceData } from '../lib/types';
 import { Badge, Banner, Button, Empty, Field, Modal, PageHeader, SelectInput, Spinner, TextArea, TextInput } from '../components/ui';
 
 const qtyField = z.string().trim().regex(/^\d{1,12}(\.\d{1,3})?$/, 'Use up to 3 decimals').refine((value) => Number(value) > 0, 'Enter a quantity');
@@ -17,6 +17,25 @@ const dateField = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 const priced = z.object({ itemId: z.string().min(1, 'Choose an item'), quantity: qtyField, unitPrice: moneyField, direction: z.enum(['IN', 'OUT']).optional() });
 const consumed = z.object({ itemId: z.string().min(1, 'Choose an item'), quantity: qtyField, unitPrice: z.string().optional(), direction: z.enum(['IN', 'OUT']).optional() });
+const caseQtyInput = z.string().trim().regex(/^\d{1,9}$/, 'Whole cases only').optional();
+const looseSlabInput = z.string().trim().regex(/^\d{1,12}(\.\d{1,3})?$/, 'Use up to 3 decimals').optional();
+const caseLineBase = {
+  itemId: z.string().min(1, 'Choose an item'),
+  quantity: z.string().trim().optional(),
+  cases: caseQtyInput,
+  looseSlabs: looseSlabInput,
+  unitPrice: z.string().optional(),
+  direction: z.enum(['IN', 'OUT']).optional(),
+};
+const caseLineRefine = { message: 'Enter a quantity, or cases' };
+const transferLineSchema = z.object(caseLineBase).refine(
+  (v) => v.quantity?.trim() || v.cases?.trim() || v.looseSlabs?.trim(),
+  caseLineRefine,
+);
+const shipmentLineSchema = z.object({ ...caseLineBase, unitPrice: moneyField }).refine(
+  (v) => v.quantity?.trim() || v.cases?.trim() || v.looseSlabs?.trim(),
+  caseLineRefine,
+);
 const adjusted = z.object({
   itemId: z.string().min(1, 'Choose an item'),
   quantity: qtyField,
@@ -47,7 +66,7 @@ const schemas = {
     destinationWarehouseId: z.string().min(1),
     transferDate: dateField,
     notes: z.string().optional(),
-    lines: z.array(consumed).min(1, 'Add at least one line'),
+    lines: z.array(transferLineSchema).min(1, 'Add at least one line'),
   }).refine((value) => value.sourceWarehouseId !== value.destinationWarehouseId, {
     message: 'Choose a different destination',
     path: ['destinationWarehouseId'],
@@ -58,7 +77,7 @@ const schemas = {
     warehouseId: z.string().min(1),
     vehicleNo: z.string().optional(),
     notes: z.string().optional(),
-    lines: z.array(priced).min(1, 'Add at least one line'),
+    lines: z.array(shipmentLineSchema).min(1, 'Add at least one line'),
   }),
   adjustments: z.object({
     warehouseId: z.string().min(1),
@@ -135,7 +154,7 @@ const META: Record<Kind, { title: string; one: string; action: string; module: '
 };
 
 function blankLine(): FormValues['lines'][number] {
-  return { itemId: '', quantity: '', unitPrice: '', direction: 'OUT' };
+  return { itemId: '', quantity: '', cases: '', looseSlabs: '', unitPrice: '', direction: 'OUT' };
 }
 
 function emptyForm(): FormValues {
@@ -186,6 +205,8 @@ function fromDoc(doc: Doc): FormValues {
     lines: (doc.lines ?? []).map((line) => ({
       itemId: line.itemId,
       quantity: line.quantity,
+      cases: line.cases ?? '',
+      looseSlabs: line.looseSlabs ?? '',
       unitPrice: line.unitPrice ?? '',
       direction: line.direction ?? 'OUT',
     })),
@@ -195,6 +216,16 @@ function fromDoc(doc: Doc): FormValues {
 function payload(kind: Kind, values: FormValues) {
   const lines = values.lines.map((line) => {
     if (kind === 'adjustments') return { itemId: line.itemId, quantity: line.quantity, direction: line.direction };
+    // Case-based entry: when cases/loose slabs are filled, the backend derives the slab quantity.
+    if ((kind === 'transfers' || kind === 'shipments') && (line.cases?.trim() || line.looseSlabs?.trim())) {
+      const entry: Record<string, string> = {
+        itemId: line.itemId,
+        cases: line.cases?.trim() || '0',
+        looseSlabs: line.looseSlabs?.trim() || '0.000',
+      };
+      if (kind === 'shipments') entry.unitPrice = line.unitPrice;
+      return entry;
+    }
     if (kind === 'purchases' || kind === 'shipments') return { itemId: line.itemId, quantity: line.quantity, unitPrice: line.unitPrice };
     return { itemId: line.itemId, quantity: line.quantity };
   });
@@ -477,6 +508,15 @@ export function DocEditor({ kind }: { kind: Kind }) {
   });
   const lines = useFieldArray({ control: form.control, name: 'lines' });
   const watched = form.watch();
+  // Packing configurations: item id -> config, for case/slab entry and live splits.
+  const packingQuery = useQuery({
+    queryKey: ['packing-configs-form'],
+    queryFn: () => api<PackingConfig[]>('/packing-configs?pageSize=200').then((result) => result.data),
+  });
+  const packingMap = useMemo(
+    () => new Map((packingQuery.data ?? []).filter((c) => c.isActive).map((c) => [c.finishedItemId, c])),
+    [packingQuery.data],
+  );
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -576,6 +616,8 @@ export function DocEditor({ kind }: { kind: Kind }) {
       bom.lines.map((line) => ({
         itemId: line.itemId,
         quantity: scaleQty(line.qtyPerUnit, watched.quantity),
+        cases: '',
+        looseSlabs: '',
         unitPrice: '',
         direction: 'OUT' as const,
       })),
@@ -633,6 +675,19 @@ export function DocEditor({ kind }: { kind: Kind }) {
               </Field>
               <Field label="Quantity" error={form.formState.errors.quantity?.message}>
                 <TextInput disabled={!editable} {...form.register('quantity')} />
+                {(() => {
+                  const pc = watched.finishedItemId ? packingMap.get(watched.finishedItemId) : undefined;
+                  const slabs = Number(watched.quantity);
+                  if (!pc || !slabs || slabs <= 0) return null;
+                  const cases = Math.floor(slabs / pc.slabsPerCase);
+                  const loose = slabs - cases * pc.slabsPerCase;
+                  const net = slabs * Number(pc.slabWeightKg);
+                  return (
+                    <span className="text-[11px] text-muted">
+                      {cases} cases + {loose.toFixed(3)} loose slabs · {net.toFixed(3)} kg net ({pc.slabsPerCase} slabs/case, {pc.grade})
+                    </span>
+                  );
+                })()}
               </Field>
               <Field label="Batch / lot" error={form.formState.errors.batchNo?.message}>
                 <TextInput disabled={!editable} {...form.register('batchNo')} />
@@ -737,6 +792,8 @@ export function DocEditor({ kind }: { kind: Kind }) {
             {lines.fields.map((field, index) => {
               const line = watched.lines?.[index];
               const available = line?.itemId ? handMap.get(line.itemId) : undefined;
+              const packing = line?.itemId ? packingMap.get(line.itemId) : undefined;
+              const caseEntry = (kind === 'transfers' || kind === 'shipments') && packing;
               return (
                 <div key={field.id} className={`grid items-end gap-2 ${meta.priced ? 'md:grid-cols-[minmax(0,1.4fr)_minmax(0,.7fr)_minmax(0,.7fr)_auto]' : meta.adjust ? 'md:grid-cols-[minmax(0,1.4fr)_minmax(0,.7fr)_minmax(0,.7fr)_auto]' : 'md:grid-cols-[minmax(0,1.6fr)_minmax(0,.7fr)_auto]'}`}>
                   <Field label={kind === 'purchases' ? 'Raw material' : 'Stock item'} error={form.formState.errors.lines?.[index]?.itemId?.message}>
@@ -744,10 +801,22 @@ export function DocEditor({ kind }: { kind: Kind }) {
                       <ItemOptions items={lineItems} />
                     </SelectInput>
                     {available !== undefined ? <span className="text-[11px] text-muted">On hand {formatQty(available)}</span> : null}
+                    {packing ? <span className="text-[11px] text-muted">{packing.slabsPerCase} slabs/case · {packing.grade}</span> : null}
                   </Field>
-                  <Field label="Quantity" error={form.formState.errors.lines?.[index]?.quantity?.message}>
-                    <TextInput disabled={!editable} inputMode="decimal" {...form.register(`lines.${index}.quantity`)} />
-                  </Field>
+                  {caseEntry ? (
+                    <>
+                      <Field label="Cases" error={form.formState.errors.lines?.[index]?.cases?.message}>
+                        <TextInput disabled={!editable} inputMode="numeric" placeholder="0" {...form.register(`lines.${index}.cases`)} />
+                      </Field>
+                      <Field label="Loose slabs" error={form.formState.errors.lines?.[index]?.looseSlabs?.message}>
+                        <TextInput disabled={!editable} inputMode="decimal" placeholder="0.000" {...form.register(`lines.${index}.looseSlabs`)} />
+                      </Field>
+                    </>
+                  ) : (
+                    <Field label="Quantity" error={form.formState.errors.lines?.[index]?.quantity?.message}>
+                      <TextInput disabled={!editable} inputMode="decimal" {...form.register(`lines.${index}.quantity`)} />
+                    </Field>
+                  )}
                   {meta.priced ? (
                     <Field label="Rate (₹ / unit)" error={form.formState.errors.lines?.[index]?.unitPrice?.message}>
                       <TextInput disabled={!editable} inputMode="decimal" {...form.register(`lines.${index}.unitPrice`)} />
