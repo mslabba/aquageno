@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { ApiError } from '../lib/api';
 import { login, useAuth } from '../lib/auth';
 import { Banner, Button, Field, TextInput } from '../components/ui';
+import { LoginArt } from '../components/LoginArt';
 
 export function LoginPage() {
   const { user, setUser } = useAuth();
@@ -37,6 +38,9 @@ export function LoginPage() {
           <p className="mt-8 max-w-md text-4xl leading-tight font-semibold tracking-tight">
             Purchases, production, and stock in one plant ledger.
           </p>
+        </div>
+        <div className="my-10 flex justify-center" aria-hidden="true">
+          <LoginArt />
         </div>
         <p className="max-w-sm text-sm text-[#9bc0be]">Kochi, Veraval, and Mumbai warehouses share the same ledger.</p>
       </section>
